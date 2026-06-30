@@ -4,7 +4,6 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
-from passlib.context import CryptContext
 from dotenv import load_dotenv
 from database import users_collection
 
@@ -15,18 +14,26 @@ JWT_SECRET = os.getenv("JWT_SECRET", "super_secret_dev_key_1234567890_flashcard"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
 
 # Use API URL for token retrieval
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 def hash_password(password: str) -> str:
     """Return the hashed password."""
-    return pwd_context.hash(password)
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against the hashed version."""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        pwd_bytes = plain_password.encode('utf-8')
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Generate a JWT token for the user."""

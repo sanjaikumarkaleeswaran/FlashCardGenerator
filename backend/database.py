@@ -4,8 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Retrieve MongoDB connection string
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/flashcard_db")
+# Retrieve MongoDB connection string (supports multiple env names)
+MONGO_URL = (
+    os.getenv("MONGO_URL") or 
+    os.getenv("MONGODB_URI") or 
+    os.getenv("MONGO_URI") or 
+    "mongodb://localhost:27017/flashcard_db"
+)
 
 # Create AsyncIOMotorClient
 client = AsyncIOMotorClient(MONGO_URL)
