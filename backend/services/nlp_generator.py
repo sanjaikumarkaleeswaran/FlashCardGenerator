@@ -534,8 +534,8 @@ def generate_mcq(notes: str) -> List[Dict]:
             unique.append(c)
     return unique
 
-def generate_flashcards_upgraded(notes: str, count: int, card_type: str, ignore_words: List[str] = None) -> List[Dict]:
-    """Orchestrator to generate specific flashcard types up to the requested count."""
+def generate_flashcards_upgraded(notes: str, count: int, card_type: str, ignore_words: List[str] = None, difficulty: Optional[str] = None) -> List[Dict]:
+    """Orchestrator to generate specific flashcard types up to the requested count, prioritizing difficulty if specified."""
     if card_type == "mcq":
         cards = generate_mcq(notes)
     elif card_type == "fillup":
@@ -543,7 +543,15 @@ def generate_flashcards_upgraded(notes: str, count: int, card_type: str, ignore_
     else:
         cards = generate_qa(notes)
         
-    return cards[:count]
+    if difficulty and difficulty.lower() in ["easy", "medium", "hard"]:
+        target_diff = difficulty.lower()
+        matching = [c for c in cards if c.get("difficulty", "medium").lower() == target_diff]
+        others = [c for c in cards if c.get("difficulty", "medium").lower() != target_diff]
+        ordered_cards = matching + others
+    else:
+        ordered_cards = cards
+        
+    return ordered_cards[:count]
 
 def generate_flashcards(notes: str) -> List[Dict]:
     """Legacy backward-compatible API signature mapping to standard QA mode."""

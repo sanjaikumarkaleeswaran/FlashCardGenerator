@@ -9,6 +9,7 @@ import {
   LayoutDashboard, 
   HelpCircle, 
   Volume2,
+  Pause,
   Sliders,
   Sparkles
 } from 'lucide-react';
@@ -46,6 +47,25 @@ const Review = () => {
   // Advanced SM-2 grading toggle and speed
   const [showAdvancedGrading, setShowAdvancedGrading] = useState(false);
   const [speakRate, setSpeakRate] = useState(1.0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Reset speech when the card changes
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlaying(false);
+    setIsPaused(false);
+  }, [currentIndex]);
+
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const fetchQueue = async () => {
@@ -106,17 +126,68 @@ const Review = () => {
     }, 200);
   };
 
+  const [currentSpokenText, setCurrentSpokenText] = useState('');
+
   const handleSpeak = (text) => {
-    if ('speechSynthesis' in window) {
+    if (!('speechSynthesis' in window)) return;
+
+    if (isPlaying) {
+      if (isPaused) {
+        window.speechSynthesis.resume();
+        setIsPaused(false);
+      } else {
+        window.speechSynthesis.pause();
+        setIsPaused(true);
+      }
+    } else {
       window.speechSynthesis.cancel();
+      setCurrentSpokenText(text);
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = speakRate;
+      
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setIsPaused(false);
+      };
+      
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+
       window.speechSynthesis.speak(utterance);
     }
   };
 
   const cycleSpeakRate = () => {
-    setSpeakRate((prev) => (prev === 1.0 ? 1.2 : prev === 1.2 ? 0.8 : 1.0));
+    const nextRate = speakRate === 1.0 ? 1.2 : speakRate === 1.2 ? 0.8 : 1.0;
+    setSpeakRate(nextRate);
+    
+    // If currently speaking, we restart it with the new rate
+    if (isPlaying && !isPaused && currentSpokenText) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(currentSpokenText);
+      utterance.rate = nextRate;
+      
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setIsPaused(false);
+      };
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      window.speechSynthesis.speak(utterance);
+    }
   };
 
   if (isLoading) {
@@ -227,13 +298,18 @@ const Review = () => {
                 <button 
                   onClick={() => handleSpeak(currentCard.question)}
                   className="p-1 hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
-                  title="Speak Question"
+                  title={isPlaying && !isPaused ? "Pause reading" : isPaused ? "Resume reading" : "Speak Question"}
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
+                  {isPlaying && !isPaused ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
                 </button>
                 <button 
                   onClick={cycleSpeakRate}
                   className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 hover:text-slate-700 transition-colors"
+                  title="Cycle read speed"
                 >
                   {speakRate}x
                 </button>
@@ -309,13 +385,18 @@ const Review = () => {
                 <button 
                   onClick={() => handleSpeak(currentCard.question.replace("______", currentCard.answer))}
                   className="p-1 hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
-                  title="Speak Statement"
+                  title={isPlaying && !isPaused ? "Pause reading" : isPaused ? "Resume reading" : "Speak Statement"}
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
+                  {isPlaying && !isPaused ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
                 </button>
                 <button 
                   onClick={cycleSpeakRate}
                   className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 hover:text-slate-700 transition-colors"
+                  title="Cycle read speed"
                 >
                   {speakRate}x
                 </button>

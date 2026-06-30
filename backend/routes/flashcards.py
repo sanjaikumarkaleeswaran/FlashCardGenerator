@@ -93,7 +93,7 @@ async def generate_set(payload: FlashcardGenerateRequest, current_user: dict = D
         )
 
     # 3. Generate cards using upgraded NLP service
-    cards_data = generate_flashcards_upgraded(text, payload.count, payload.type, payload.ignore_words)
+    cards_data = generate_flashcards_upgraded(text, payload.count, payload.type, payload.ignore_words, payload.difficulty)
     if not cards_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

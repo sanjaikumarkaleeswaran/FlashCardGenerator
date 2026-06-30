@@ -1,8 +1,27 @@
-import React, { useState } from 'react';
-import { Volume2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, Pause } from 'lucide-react';
 
 const Flashcard = ({ card, isFlipped, onFlip }) => {
   const [speakRate, setSpeakRate] = useState(1.0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Reset speech when the card is flipped or unmounted
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlaying(false);
+    setIsPaused(false);
+  }, [isFlipped]);
+
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   const getDifficultyColor = (diff) => {
     switch (diff?.toLowerCase()) {
@@ -19,17 +38,66 @@ const Flashcard = ({ card, isFlipped, onFlip }) => {
 
   const handleSpeak = (e, text) => {
     e.stopPropagation();
-    if ('speechSynthesis' in window) {
+    if (!('speechSynthesis' in window)) return;
+
+    if (isPlaying) {
+      if (isPaused) {
+        window.speechSynthesis.resume();
+        setIsPaused(false);
+      } else {
+        window.speechSynthesis.pause();
+        setIsPaused(true);
+      }
+    } else {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = speakRate;
+      
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setIsPaused(false);
+      };
+      
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+
       window.speechSynthesis.speak(utterance);
     }
   };
 
   const cycleRate = (e) => {
     e.stopPropagation();
-    setSpeakRate((prev) => (prev === 1.0 ? 1.2 : prev === 1.2 ? 0.8 : 1.0));
+    const nextRate = speakRate === 1.0 ? 1.2 : speakRate === 1.2 ? 0.8 : 1.0;
+    setSpeakRate(nextRate);
+    
+    // If currently speaking, we restart it with the new rate
+    if (isPlaying && !isPaused) {
+      window.speechSynthesis.cancel();
+      const text = isFlipped ? card.answer : card.question;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = nextRate;
+      
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setIsPaused(false);
+      };
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      window.speechSynthesis.speak(utterance);
+    }
   };
 
   return (
@@ -60,9 +128,13 @@ const Flashcard = ({ card, isFlipped, onFlip }) => {
                 <button 
                   onClick={(e) => handleSpeak(e, card.question)}
                   className="p-1 hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
-                  title="Read question out loud"
+                  title={isPlaying && !isPaused ? "Pause reading" : isPaused ? "Resume reading" : "Read question out loud"}
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
+                  {isPlaying && !isPaused ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
                 </button>
                 <button 
                   onClick={cycleRate}
@@ -110,9 +182,13 @@ const Flashcard = ({ card, isFlipped, onFlip }) => {
                 <button 
                   onClick={(e) => handleSpeak(e, card.answer)}
                   className="p-1 hover:bg-indigo-100/80 text-indigo-600 rounded-lg transition-all cursor-pointer"
-                  title="Read answer out loud"
+                  title={isPlaying && !isPaused ? "Pause reading" : isPaused ? "Resume reading" : "Read answer out loud"}
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
+                  {isPlaying && !isPaused ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
                 </button>
                 <button 
                   onClick={cycleRate}

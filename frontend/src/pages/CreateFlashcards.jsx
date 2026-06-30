@@ -20,6 +20,7 @@ const CreateFlashcards = () => {
   const [subject, setSubject] = useState('General');
   const [folderName, setFolderName] = useState('');
   const [ignoreWords, setIgnoreWords] = useState('');
+  const [difficulty, setDifficulty] = useState('all'); // 'all' | 'easy' | 'medium' | 'hard'
 
   // Existing subjects for suggestions
   const [subjectSuggestions, setSubjectSuggestions] = useState([]);
@@ -105,7 +106,8 @@ const CreateFlashcards = () => {
         type: cardType,
         subject: subject.trim() || 'General',
         folder_name: folderName.trim() || undefined,
-        ignore_words: ignoreList.length > 0 ? ignoreList : undefined
+        ignore_words: ignoreList.length > 0 ? ignoreList : undefined,
+        difficulty: difficulty === 'all' ? undefined : difficulty
       };
 
       const data = await flashcardService.generate(payload);
@@ -461,6 +463,23 @@ const CreateFlashcards = () => {
                     {[5, 10, 20, 30, 50].map(count => (
                       <option key={count} value={count}>{count} Flashcards</option>
                     ))}
+                  </select>
+                </div>
+
+                {/* Difficulty Selector */}
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Generation Difficulty
+                  </label>
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    className="block w-full p-3 border border-slate-200 rounded-xl text-slate-800 font-bold text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">All / Mixed Difficulties</option>
+                    <option value="easy">Easy (Shorter sentences)</option>
+                    <option value="medium">Medium (Moderate sentences)</option>
+                    <option value="hard">Hard (Complex sentences)</option>
                   </select>
                 </div>
               </div>
