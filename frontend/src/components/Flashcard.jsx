@@ -39,10 +39,12 @@ const Flashcard = ({ card, isFlipped, onFlip }) => {
           </div>
 
           {/* Question Text */}
-          <div className="flex-1 flex items-center justify-center my-6">
-            <h3 className="text-slate-800 text-xl sm:text-2xl font-bold text-center leading-relaxed px-2">
-              {card.question}
-            </h3>
+          <div className="flex-1 overflow-y-auto my-4 pr-1">
+            <div className="min-h-full flex items-center justify-center">
+              <h3 className="text-slate-800 text-base sm:text-lg font-bold text-center leading-relaxed py-2">
+                {card.question}
+              </h3>
+            </div>
           </div>
 
           {/* Footer Instruction */}
@@ -64,10 +66,12 @@ const Flashcard = ({ card, isFlipped, onFlip }) => {
           </div>
 
           {/* Answer Text */}
-          <div className="flex-1 flex items-center justify-center my-6">
-            <p className="text-indigo-950 text-lg sm:text-xl font-medium text-center leading-relaxed px-2">
-              {card.answer}
-            </p>
+          <div className="flex-1 overflow-y-auto my-4 pr-1">
+            <div className="min-h-full flex items-center justify-center">
+              <p className="text-indigo-950 text-sm sm:text-base font-medium text-center leading-relaxed py-2">
+                {card.answer}
+              </p>
+            </div>
           </div>
 
           {/* Footer Instruction */}

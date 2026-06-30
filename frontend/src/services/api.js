@@ -53,8 +53,18 @@ export const authService = {
 };
 
 export const flashcardService = {
-  async generate(notes) {
-    const response = await api.post('/api/flashcards/generate', { notes });
+  async generate(payload) {
+    const response = await api.post('/api/flashcards/generate', payload);
+    return response.data;
+  },
+
+  async uploadDocument(formData, onUploadProgress) {
+    const response = await api.post('/api/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress
+    });
     return response.data;
   },
 
@@ -70,6 +80,31 @@ export const flashcardService = {
 
   async updateReviewStatus(cardId, status) {
     const response = await api.post('/api/review/update', { cardId, status });
+    return response.data;
+  },
+
+  async renameSet(setId, title) {
+    const response = await api.put(`/api/flashcards/set/${setId}`, { title });
+    return response.data;
+  },
+
+  async deleteSet(setId) {
+    const response = await api.delete(`/api/flashcards/set/${setId}`);
+    return response.data;
+  },
+
+  async addCard(setId, cardData) {
+    const response = await api.post(`/api/flashcards/set/${setId}/card`, cardData);
+    return response.data;
+  },
+
+  async editCard(setId, cardId, cardData) {
+    const response = await api.put(`/api/flashcards/set/${setId}/card/${cardId}`, cardData);
+    return response.data;
+  },
+
+  async deleteCard(setId, cardId) {
+    const response = await api.delete(`/api/flashcards/set/${setId}/card/${cardId}`);
     return response.data;
   },
 };

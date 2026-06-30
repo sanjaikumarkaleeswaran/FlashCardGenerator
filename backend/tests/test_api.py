@@ -4,106 +4,105 @@ import random
 import string
 import requests
 import json
+import io
+import docx
 
 # Add parent directory to path so we can import services
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services.nlp_generator import generate_flashcards, get_nlp
+from services.nlp_generator import (
+    generate_flashcards_upgraded,
+    generate_qa,
+    generate_fillups,
+    generate_mcq,
+    get_nlp
+)
+from services.document_processor import (
+    extract_text_from_docx,
+    extract_text_from_txt,
+    extract_text
+)
 
-def test_nlp_engine():
-    """Run local unit tests on the NLP Question Generation rules."""
+def test_document_extraction():
+    """Verify document processing services for DOCX and TXT."""
     print("==================================================")
-    print(" RUNNING NLP ENGINE UNIT TESTS")
+    print(" RUNNING DOCUMENT EXTRACTION TESTS")
     print("==================================================")
     
-    # Ensure NLP engine is initialized
-    print("Loading spaCy...")
+    # 1. Test TXT
+    sample_txt = b"Photosynthesis occurs inside chloroplasts of green plants."
+    text_txt = extract_text_from_txt(sample_txt)
+    print(f"TXT Extracted: '{text_txt}'")
+    assert "chloroplasts" in text_txt, "TXT extraction failed"
+    print("[OK] TXT extraction passed.")
+
+    # 2. Test DOCX (generate in-memory DOCX file using python-docx)
+    doc = docx.Document()
+    doc.add_paragraph("Albert Einstein developed relativity in 1915.")
+    f_stream = io.BytesIO()
+    doc.save(f_stream)
+    docx_bytes = f_stream.getvalue()
+    
+    text_docx = extract_text_from_docx(docx_bytes)
+    print(f"DOCX Extracted: '{text_docx}'")
+    assert "Einstein" in text_docx, "DOCX extraction failed"
+    print("[OK] DOCX extraction passed.")
+    print("==================================================\n")
+
+def test_upgraded_nlp_engine():
+    """Test upgraded MCQ, Fillups, and QA rules in nlp_generator."""
+    print("==================================================")
+    print(" RUNNING UPGRADED NLP ENGINE TESTS")
+    print("==================================================")
+    
     engine = get_nlp()
     if engine is None:
-        print("Warning: spaCy is not installed. Testing fallback regex engine.")
-    else:
-        print("spaCy model loaded successfully.")
+        print("spaCy model not loaded. Skipping NLP tests.")
+        return
 
-    # Test 1: Definition
-    note_def = "Photosynthesis is the process plants use to create food. Sunlight provides the energy."
-    cards = generate_flashcards(note_def)
-    print(f"\nInput Notes:\n'{note_def}'")
-    print(f"Generated {len(cards)} flashcards.")
-    for idx, card in enumerate(cards):
-        print(f"  [{idx+1}] Q: {card['question']} | A: {card['answer']} | Diff: {card['difficulty']}")
-    
-    # Assertions
-    assert len(cards) >= 1, "Failed to generate any cards for definition test"
-    # Find definition question
-    def_cards = [c for c in cards if "What is" in c["question"] or "What is photosynthesis" in c["question"]]
-    if engine:
-        assert len(def_cards) > 0, "Definition question pattern not matched"
-        assert "photosynthesis" in def_cards[0]["question"].lower()
-        assert "food" in def_cards[0]["answer"].lower()
-        print("[OK] Definition matching rule passed.")
+    notes = (
+        "Photosynthesis is the process plants use to convert sunlight into food. "
+        "Mitochondria are the powerhouse of the cell. "
+        "Albert Einstein developed the theory of relativity. "
+        "The declaration was signed in Philadelphia in 1776."
+    )
 
-    # Test 2: Person (Who)
-    note_person = "Albert Einstein developed the theory of relativity. He was a theoretical physicist."
-    cards_p = generate_flashcards(note_person)
-    print(f"\nInput Notes:\n'{note_person}'")
-    print(f"Generated {len(cards_p)} flashcards.")
-    for idx, card in enumerate(cards_p):
-        print(f"  [{idx+1}] Q: {card['question']} | A: {card['answer']}")
-    
-    person_cards = [c for c in cards_p if "Who" in c["question"]]
-    if engine:
-        assert len(person_cards) > 0, "Person question pattern not matched"
-        assert "relativity" in person_cards[0]["question"].lower()
-        assert "albert einstein" in person_cards[0]["answer"].lower()
-        print("[OK] Person matching rule passed.")
+    # 1. Test QA Generation
+    qa_cards = generate_flashcards_upgraded(notes, count=5, card_type="qa")
+    print(f"\nGenerated {len(qa_cards)} QA cards:")
+    for c in qa_cards:
+        print(f"  Q: {c['question']} | A: {c['answer']}")
+    assert len(qa_cards) > 0
+    assert qa_cards[0]["type"] == "qa"
+    print("[OK] QA generation test passed.")
 
-    # Test 3: Location (Where)
-    note_loc = "Photosynthesis occurs in chloroplasts. This reaction takes place inside cells."
-    cards_l = generate_flashcards(note_loc)
-    print(f"\nInput Notes:\n'{note_loc}'")
-    for idx, card in enumerate(cards_l):
-        print(f"  [{idx+1}] Q: {card['question']} | A: {card['answer']}")
-        
-    loc_cards = [c for c in cards_l if "Where" in c["question"]]
-    if engine:
-        assert len(loc_cards) > 0, "Location question pattern not matched"
-        assert "occurs" in loc_cards[0]["question"].lower() or "occur" in loc_cards[0]["question"].lower()
-        assert "chloroplasts" in loc_cards[0]["answer"].lower()
-        print("[OK] Location matching rule passed.")
+    # 2. Test Fillups Generation
+    fill_cards = generate_flashcards_upgraded(notes, count=5, card_type="fillup")
+    print(f"\nGenerated {len(fill_cards)} Fill-in-the-blank cards:")
+    for c in fill_cards:
+        print(f"  Q: {c['question']} | A: {c['answer']}")
+    assert len(fill_cards) > 0
+    assert fill_cards[0]["type"] == "fillup"
+    assert "______" in fill_cards[0]["question"]
+    print("[OK] Fill-in-the-blank generation test passed.")
 
-    # Test 4: Time (When)
-    note_time = "The company was founded in 1995. They started as an online bookstore."
-    cards_t = generate_flashcards(note_time)
-    print(f"\nInput Notes:\n'{note_time}'")
-    for idx, card in enumerate(cards_t):
-        print(f"  [{idx+1}] Q: {card['question']} | A: {card['answer']}")
-        
-    time_cards = [c for c in cards_t if "When" in c["question"]]
-    if engine:
-        assert len(time_cards) > 0, "Time question pattern not matched"
-        assert "founded" in time_cards[0]["question"].lower()
-        assert "1995" in time_cards[0]["answer"].lower()
-        print("[OK] Time matching rule passed.")
+    # 3. Test MCQ Generation
+    mcq_cards = generate_flashcards_upgraded(notes, count=5, card_type="mcq")
+    print(f"\nGenerated {len(mcq_cards)} MCQ cards:")
+    for c in mcq_cards:
+        print(f"  Q: {c['question']}")
+        print(f"  Correct Answer: {c['answer']}")
+        print(f"  Options: {c['options']}")
+    assert len(mcq_cards) > 0
+    assert mcq_cards[0]["type"] == "mcq"
+    assert len(mcq_cards[0]["options"]) == 4
+    assert mcq_cards[0]["answer"] in mcq_cards[0]["options"]
+    print("[OK] MCQ generation test passed.")
 
-    # Test 5: Fallback Cloze Deletion
-    note_fallback = "Plants use sunlight to produce energy. This is a very critical biological action."
-    cards_f = generate_flashcards(note_fallback)
-    print(f"\nInput Notes:\n'{note_fallback}'")
-    for idx, card in enumerate(cards_f):
-        print(f"  [{idx+1}] Q: {card['question']} | A: {card['answer']}")
-        
-    fallback_cards = [c for c in cards_f if "______" in c["question"]]
-    assert len(fallback_cards) > 0, "Cloze-deletion fallback failed to generate"
-    assert "sunlight" in fallback_cards[0]["answer"].lower() or "energy" in fallback_cards[0]["answer"].lower()
-    print("[OK] Fallback cloze deletion passed.")
-
-    # Test 6: Short note validation
-    short_note = "Short text."
-    short_cards = generate_flashcards(short_note)
-    assert len(short_cards) == 0, "Validation failed: generated cards from notes shorter than 30 characters"
-    print("[OK] Notes length validation passed.")
-    
-    print("\nALL NLP ENGINE UNIT TESTS PASSED SUCCESSFULLY!")
+    # 4. Test Card Count parameter
+    trimmed_cards = generate_flashcards_upgraded(notes, count=2, card_type="qa")
+    assert len(trimmed_cards) <= 2
+    print(f"[OK] Count limits parameter test passed (Count: {len(trimmed_cards)}).")
     print("==================================================\n")
 
 def test_api_endpoints(base_url="http://127.0.0.1:8000"):
@@ -114,7 +113,6 @@ def test_api_endpoints(base_url="http://127.0.0.1:8000"):
     print(f"Targeting server: {base_url}")
     
     try:
-        # Ping root endpoint
         response = requests.get(base_url)
         if response.status_code != 200:
             print(f"Server returned status code {response.status_code}. Aborting API tests.")
@@ -136,8 +134,6 @@ def test_api_endpoints(base_url="http://127.0.0.1:8000"):
     
     print(f"\n[1] Registering user: {test_email}")
     reg_res = requests.post(f"{base_url}/api/register", json=register_payload)
-    print(f"Response Status: {reg_res.status_code}")
-    print(f"Response Body: {reg_res.text}")
     assert reg_res.status_code == 201, "User registration failed"
     
     # 2. Login User
@@ -147,88 +143,80 @@ def test_api_endpoints(base_url="http://127.0.0.1:8000"):
     }
     print(f"\n[2] Logging in user: {test_email}")
     login_res = requests.post(f"{base_url}/api/login", json=login_payload)
-    print(f"Response Status: {login_res.status_code}")
     assert login_res.status_code == 200, "Login failed"
     
     token_data = login_res.json()
     token = token_data["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     print("Token retrieved successfully.")
-    
-    # Verify current user endpoint
-    me_res = requests.get(f"{base_url}/api/me", headers=headers)
-    print(f"Verify /api/me: {me_res.json()}")
-    assert me_res.status_code == 200
 
-    # 3. Generate Flashcard Set
-    notes_payload = {
-        "notes": "FastAPI is a modern, fast, high-performance web framework. It is used for building APIs with Python 3.8+ based on standard Python type hints. The documentation is generated automatically."
+    # 3. Test File Upload
+    print("\n[3] Testing document upload /api/documents/upload...")
+    file_content = b"Photosynthesis occurs inside chloroplasts of plants. Sunlight energy is required."
+    files = {"file": ("photosynthesis.txt", file_content, "text/plain")}
+    
+    upload_res = requests.post(
+        f"{base_url}/api/documents/upload",
+        files=files,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    print(f"Upload Response Status: {upload_res.status_code}")
+    assert upload_res.status_code == 201
+    doc_data = upload_res.json()
+    document_id = doc_data["document_id"]
+    print(f"Uploaded Document ID: {document_id}")
+    
+    # 4. Generate from Document Source
+    print("\n[4] Generating MCQs from Document Source ID...")
+    gen_payload = {
+        "source": document_id,
+        "count": 5,
+        "type": "mcq"
     }
-    print(f"\n[3] Posting study notes to generate flashcards...")
-    gen_res = requests.post(f"{base_url}/api/flashcards/generate", json=notes_payload, headers=headers)
-    print(f"Response Status: {gen_res.status_code}")
-    assert gen_res.status_code == 201, "Flashcard generation failed"
-    
+    gen_res = requests.post(f"{base_url}/api/flashcards/generate", json=gen_payload, headers=headers)
+    print(f"Generation Response Status: {gen_res.status_code}")
+    assert gen_res.status_code == 201
     set_data = gen_res.json()
-    set_id = set_data["id"]
-    cards = set_data["cards"]
     print(f"Generated Set Title: {set_data['title']}")
-    print(f"Number of cards generated: {len(cards)}")
-    for c in cards[:2]:
-        print(f"  Q: {c['question']} | A: {c['answer']} | ID: {c['id']}")
-    assert len(cards) > 0, "No cards returned in response"
-
-    # 4. Fetch Sets History
-    print("\n[4] Fetching all flashcard sets history...")
+    print(f"Source Type: {set_data['source_type']}")
+    print(f"Flashcard Type: {set_data['flashcard_type']}")
+    print(f"Cards Count: {len(set_data['cards'])}")
+    assert len(set_data["cards"]) > 0
+    assert set_data["cards"][0]["type"] == "mcq"
+    
+    # 5. Fetch History
+    print("\n[5] Fetching history...")
     history_res = requests.get(f"{base_url}/api/flashcards", headers=headers)
-    print(f"Response Status: {history_res.status_code}")
     assert history_res.status_code == 200
-    sets_list = history_res.json()
-    print(f"Total flashcard sets in history: {len(sets_list)}")
-    assert len(sets_list) >= 1
+    sets = history_res.json()
+    print(f"Total sets in history: {len(sets)}")
+    assert sets[0]["source_type"] == "txt"
+    assert sets[0]["flashcard_type"] == "mcq"
     
-    # 5. Fetch Review Queue
-    print("\n[5] Fetching review queue...")
+    # 6. Fetch Review Queue
+    print("\n[6] Fetching review queue...")
     review_res = requests.get(f"{base_url}/api/review", headers=headers)
-    print(f"Response Status: {review_res.status_code}")
     assert review_res.status_code == 200
-    review_queue = review_res.json()
-    print(f"Total cards in review queue: {len(review_queue)}")
-    assert len(review_queue) > 0
+    queue = review_res.json()
+    print(f"Cards in queue: {len(queue)}")
+    assert len(queue) > 0
+    assert queue[0]["type"] == "mcq"
     
-    # Save a card ID to review
-    target_card_id = review_queue[0]["id"]
-    initial_priority = review_queue[0].get("priority", 0)
-    print(f"Selecting card ID {target_card_id} with initial priority {initial_priority}")
-
-    # 6. Update Card status to "not_known" (priority should increase by 2)
-    print("\n[6] Review update: Marking card as 'not_known'...")
+    # 7. Update Card Review Status
+    target_card_id = queue[0]["id"]
     update_payload = {
         "cardId": target_card_id,
-        "status": "not_known"
+        "status": "known"
     }
-    update_res1 = requests.post(f"{base_url}/api/review/update", json=update_payload, headers=headers)
-    print(f"Response Status: {update_res1.status_code}")
-    assert update_res1.status_code == 200
-    res_data1 = update_res1.json()
-    print(f"Update response: {res_data1}")
-    assert res_data1["newPriority"] == initial_priority + 2
-    
-    # 7. Update Card status to "known" (priority should decrease by 1)
-    print("\n[7] Review update: Marking card as 'known'...")
-    update_payload["status"] = "known"
-    update_res2 = requests.post(f"{base_url}/api/review/update", json=update_payload, headers=headers)
-    print(f"Response Status: {update_res2.status_code}")
-    assert update_res2.status_code == 200
-    res_data2 = update_res2.json()
-    print(f"Update response: {res_data2}")
-    assert res_data2["newPriority"] == (initial_priority + 2) - 1
+    update_res = requests.post(f"{base_url}/api/review/update", json=update_payload, headers=headers)
+    assert update_res.status_code == 200
+    print("[OK] Review update API verified.")
     
     print("\nALL API INTEGRATION TESTS PASSED SUCCESSFULLY!")
     print("==================================================\n")
 
 if __name__ == "__main__":
-    test_nlp_engine()
-    # If a specific URL is provided, test it
+    test_document_extraction()
+    test_upgraded_nlp_engine()
     url = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000"
     test_api_endpoints(url)

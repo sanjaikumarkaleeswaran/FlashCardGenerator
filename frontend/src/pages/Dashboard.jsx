@@ -9,7 +9,9 @@ import {
   Play, 
   BookOpen, 
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  FileText,
+  PieChart
 } from 'lucide-react';
 import { flashcardService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -33,24 +35,47 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Compute Metrics
+  // Compute Upgraded Metrics
   const totalSets = sets.length;
   let totalCards = 0;
   let knownCards = 0;
   let notKnownCards = 0;
+  
+  let qaCount = 0;
+  let mcqCount = 0;
+  let fillupCount = 0;
+  let docsUploadedCount = 0;
 
   sets.forEach((set) => {
+    // Count documents (PDF, DOCX, TXT formats)
+    const srcType = set.source_type?.toLowerCase() || 'text';
+    if (['pdf', 'docx', 'txt'].includes(srcType)) {
+      docsUploadedCount += 1;
+    }
+
     totalCards += set.cards.length;
     set.cards.forEach((card) => {
+      // Spaced repetition status
       if (card.status === 'known') {
         knownCards += 1;
       } else {
         notKnownCards += 1;
       }
+
+      // Card types breakdown
+      const type = card.type || 'qa';
+      if (type === 'mcq') {
+        mcqCount += 1;
+      } else if (type === 'fillup') {
+        fillupCount += 1;
+      } else {
+        qaCount += 1;
+      }
     });
   });
 
   const knownPercentage = totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
+  const notKnownPercentage = totalCards > 0 ? (100 - knownPercentage) : 0;
 
   const MetricCard = ({ title, value, icon: Icon, colorClass, subtitle }) => (
     <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md hover:shadow-lg transition-all duration-300 flex items-start justify-between">
@@ -84,14 +109,14 @@ const Dashboard = () => {
         <div className="flex items-center gap-3">
           <Link
             to="/create"
-            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-3 rounded-2xl shadow-md transition-all text-sm"
+            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-3 rounded-2xl shadow-md transition-all text-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Generate Cards</span>
           </Link>
           <Link
             to="/review"
-            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-2xl shadow-md transition-all text-sm"
+            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-2xl shadow-md transition-all text-sm cursor-pointer"
           >
             <Play className="w-4 h-4" />
             <span>Review Queue</span>
@@ -122,23 +147,24 @@ const Dashboard = () => {
           subtitle="Individual study items"
         />
         <MetricCard
+          title="Documents uploaded"
+          value={docsUploadedCount}
+          icon={FileText}
+          colorClass="bg-blue-50 text-blue-600"
+          subtitle="PDF, DOCX, TXT inputs"
+        />
+        <MetricCard
           title="Known cards"
           value={knownCards}
           icon={CheckCircle}
           colorClass="bg-emerald-50 text-emerald-600"
           subtitle={`${knownPercentage}% mastery rate`}
         />
-        <MetricCard
-          title="Review priority"
-          value={notKnownCards}
-          icon={HelpCircle}
-          colorClass="bg-amber-50 text-amber-600"
-          subtitle="Cards left to master"
-        />
       </div>
 
       {/* Main Grid: Recent Sets and Mastery Gauge */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
         {/* Left Side: Recent Notes/Sets */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -160,7 +186,7 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <h3 className="text-lg font-bold text-slate-800">No Flashcard Sets Yet</h3>
                 <p className="text-slate-500 text-sm max-w-sm mx-auto">
-                  Paste your study notes or textbook text and our AI will automatically parse questions for you.
+                  Upload study documents or paste notes, and our AI will automatically parse flashcards for you.
                 </p>
               </div>
               <Link
@@ -173,90 +199,158 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {sets.slice(0, 3).map((set) => (
-                <div 
-                  key={set.id}
-                  className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6"
-                >
-                  <div className="space-y-2 max-w-lg flex-1">
-                    <h3 className="text-lg font-extrabold text-slate-800 line-clamp-1">{set.title}</h3>
-                    <p className="text-slate-400 text-xs font-semibold">
-                      Created: {new Date(set.created_at).toLocaleDateString(undefined, { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })} | Cards: <span className="text-indigo-600 font-bold">{set.card_count}</span>
-                    </p>
-                    <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">
-                      {set.notes}
-                    </p>
+              {sets.slice(0, 3).map((set) => {
+                const docType = set.source_type?.toUpperCase() || 'TEXT';
+                const cardTypeLabel = set.flashcard_type === 'mcq' ? 'MCQ' : set.flashcard_type === 'fillup' ? 'FILLUP' : 'QA';
+                
+                return (
+                  <div 
+                    key={set.id}
+                    className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6"
+                  >
+                    <div className="space-y-2 max-w-lg flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-lg font-extrabold text-slate-800 line-clamp-1">{set.title}</h3>
+                        <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-500 font-bold rounded">
+                          {docType}
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 bg-indigo-50 text-indigo-600 font-bold rounded">
+                          {cardTypeLabel}
+                        </span>
+                      </div>
+                      <p className="text-slate-400 text-xs font-semibold">
+                        Created: {new Date(set.created_at).toLocaleDateString(undefined, { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })} | Cards: <span className="text-indigo-600 font-bold">{set.card_count}</span>
+                      </p>
+                      <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">
+                        {set.notes}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <Link
+                        to={`/review?setId=${set.id}`}
+                        className="flex-1 sm:flex-initial text-center bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm cursor-pointer"
+                      >
+                        Study Set
+                      </Link>
+                      <Link
+                        to="/history"
+                        className="flex-1 sm:flex-initial text-center bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold px-4 py-2.5 rounded-xl text-sm transition-all cursor-pointer"
+                      >
+                        View Details
+                      </Link>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <Link
-                      to={`/review?setId=${set.id}`}
-                      className="flex-1 sm:flex-initial text-center bg-indigo-550 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm"
-                    >
-                      Study Set
-                    </Link>
-                    <Link
-                      to="/history"
-                      className="flex-1 sm:flex-initial text-center bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold px-4 py-2.5 rounded-xl text-sm transition-all"
-                    >
-                      View Details
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Right Side: Learning Progress / Card Mastery Ring */}
+        {/* Right Side: Learning Progress / Card Mastery Ring & Card Types */}
         <div className="space-y-6">
           <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-xl font-extrabold text-slate-900">Learning Insights</h2>
+            <h2 className="text-xl font-extrabold text-slate-900 font-sans">Learning Insights</h2>
           </div>
 
-          <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-8 flex flex-col items-center justify-center">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6">
+            
             {/* SVG Circular Mastery Gauge */}
-            <div className="relative w-40 h-40 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90">
-                {/* Track Ring */}
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="64"
-                  className="stroke-slate-100 fill-none"
-                  strokeWidth="10"
-                />
-                {/* Active Mastery Ring */}
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="64"
-                  className="stroke-indigo-600 fill-none transition-all duration-1000 ease-out"
-                  strokeWidth="10"
-                  strokeDasharray={402.1} // 2 * pi * r = 2 * 3.14159 * 64
-                  strokeDashoffset={402.1 - (402.1 * knownPercentage) / 100}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center justify-center space-y-1">
-                <span className="text-3xl font-extrabold text-slate-900">{knownPercentage}%</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mastered</span>
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="relative w-40 h-40 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="64"
+                    className="stroke-slate-100 fill-none"
+                    strokeWidth="10"
+                  />
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="64"
+                    className="stroke-indigo-600 fill-none transition-all duration-1000 ease-out"
+                    strokeWidth="10"
+                    strokeDasharray={402.1}
+                    strokeDashoffset={402.1 - (402.1 * knownPercentage) / 100}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center space-y-0.5">
+                  <span className="text-3xl font-extrabold text-slate-900">{knownPercentage}%</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mastered</span>
+                </div>
+              </div>
+              
+              <div className="w-full flex justify-between items-center text-xs font-bold text-slate-500 px-4">
+                <span className="flex items-center space-x-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                  <span>Known: {knownPercentage}%</span>
+                </span>
+                <span className="flex items-center space-x-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                  <span>Not Known: {notKnownPercentage}%</span>
+                </span>
               </div>
             </div>
 
-            <div className="text-center space-y-2">
-              <h3 className="font-bold text-slate-800 text-base flex items-center justify-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-emerald-500" />
-                <span>Spaced Repetition Active</span>
+            {/* Card Types Distribution */}
+            <div className="border-t border-slate-100 pt-6 space-y-4">
+              <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
+                <PieChart className="w-4 h-4 text-indigo-500" />
+                <span>Card Types Distribution</span>
               </h3>
-              <p className="text-xs text-slate-500 max-w-[240px] leading-relaxed">
-                Cards tagged as "Not Known" are weighted heavier and will reappear at the front of your review queue.
-              </p>
+
+              <div className="space-y-3">
+                {/* QA bar */}
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                    <span>Question & Answer</span>
+                    <span className="text-slate-400">{qaCount} cards</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-indigo-600 h-full rounded-full" 
+                      style={{ width: `${totalCards > 0 ? (qaCount / totalCards) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* MCQ bar */}
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                    <span>Multiple Choice (MCQ)</span>
+                    <span className="text-slate-400">{mcqCount} cards</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-purple-600 h-full rounded-full" 
+                      style={{ width: `${totalCards > 0 ? (mcqCount / totalCards) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Fillups bar */}
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                    <span>Fill in the Blanks</span>
+                    <span className="text-slate-400">{fillupCount} cards</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-amber-500 h-full rounded-full" 
+                      style={{ width: `${totalCards > 0 ? (fillupCount / totalCards) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
+            {/* Summary statistics */}
             <div className="w-full border-t border-slate-100 pt-6 flex justify-around text-center">
               <div>
                 <span className="block text-2xl font-extrabold text-emerald-600">{knownCards}</span>
@@ -265,11 +359,13 @@ const Dashboard = () => {
               <div className="border-r border-slate-100" />
               <div>
                 <span className="block text-2xl font-extrabold text-amber-600">{notKnownCards}</span>
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Needs Practice</span>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Needs Review</span>
               </div>
             </div>
+            
           </div>
         </div>
+
       </div>
     </div>
   );

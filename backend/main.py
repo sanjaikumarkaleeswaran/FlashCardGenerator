@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import ping_database
 from routes.auth import router as auth_router
 from routes.flashcards import router as flashcards_router
+from routes.documents import router as documents_router
 from services.nlp_generator import get_nlp
 
 @asynccontextmanager
@@ -43,6 +44,7 @@ app.add_middleware(
 # Mount API Routers
 app.include_router(auth_router, prefix="/api")
 app.include_router(flashcards_router, prefix="/api")
+app.include_router(documents_router)
 
 @app.get("/")
 async def root():

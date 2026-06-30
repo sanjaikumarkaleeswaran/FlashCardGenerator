@@ -19,6 +19,7 @@ db = client.get_default_database()
 # Get collections
 users_collection = db["users"]
 flashcard_sets_collection = db["flashcard_sets"]
+documents_collection = db["documents"]
 
 async def ping_database():
     """Verify that MongoDB connection works."""
