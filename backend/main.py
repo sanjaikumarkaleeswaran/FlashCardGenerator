@@ -32,10 +32,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enable CORS for frontend clients (Vercel, Localhost, etc.)
+# Enable CORS — reads ALLOWED_ORIGINS from env (comma-separated list)
+# Default allows localhost dev + any .onrender.com domain
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS = (
+    [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    if _raw_origins
+    else ["*"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -24,6 +24,10 @@ import {
 import { flashcardService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmationModal from '../components/ConfirmationModal';
+import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import Input from '../components/ui/Input';
 
 const History = () => {
   const navigate = useNavigate();
@@ -33,6 +37,9 @@ const History = () => {
   
   // Search query state
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Selected Subject Chip Filter
+  const [selectedSubject, setSelectedSubject] = useState('All Decks');
 
   // Accordion open/close state
   const [expandedSetIds, setExpandedSetIds] = useState({});
@@ -84,16 +91,12 @@ const History = () => {
     }));
   };
 
-  const getDifficultyColor = (diff) => {
+  const getDifficultyBadge = (diff) => {
     switch (diff?.toLowerCase()) {
-      case 'easy':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'medium':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'hard':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
-      default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+      case 'easy': return 'easy';
+      case 'medium': return 'medium';
+      case 'hard': return 'hard';
+      default: return 'secondary';
     }
   };
 
@@ -299,15 +302,21 @@ const History = () => {
     }
   };
 
-  // Filter sets by search query
+  // Unique Subjects List for Chips
+  const uniqueSubjects = ['All Decks', ...new Set(sets.map(s => s.subject || 'General'))];
+
+  // Filter sets by search query and selected subject chip
   const filteredSets = sets.filter((set) => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       set.title?.toLowerCase().includes(query) ||
       set.notes?.toLowerCase().includes(query) ||
       set.source_type?.toLowerCase().includes(query) ||
       set.flashcard_type?.toLowerCase().includes(query)
     );
+
+    const matchesSubject = selectedSubject === 'All Decks' || (set.subject || 'General') === selectedSubject;
+    return matchesSearch && matchesSubject;
   });
 
   if (isLoading) {
@@ -319,63 +328,84 @@ const History = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-5">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in text-slate-805 dark:text-slate-200">
+      
+      {/* Header Panel */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-100 dark:border-slate-800/80 pb-5">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <HistoryIcon className="w-8 h-8 text-indigo-600" />
-            <span>Study History</span>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+            <HistoryIcon className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+            <span>Library Archives</span>
           </h1>
-          <p className="text-slate-500 font-medium text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1">
             Browse, manage, and edit your previously generated study sets.
           </p>
         </div>
 
         {/* Search Input */}
         <div className="relative w-full md:w-80">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-            <Search className="w-4.5 h-4.5" />
-          </div>
-          <input
+          <Input
             type="text"
-            placeholder="Search sets by title, note, or type..."
+            placeholder="Search sets by keyword..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-sm"
+            icon={Search}
           />
         </div>
       </div>
 
       {error && (
-        <div className="bg-rose-50 border border-rose-100 text-rose-700 p-4 rounded-2xl text-sm font-medium flex items-center gap-2">
+        <div className="bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/40 text-rose-700 dark:text-rose-400 p-4 rounded-2xl text-sm font-semibold flex items-center gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
+      {/* Tag-Based Subject Filtering Chips */}
+      <div className="space-y-2">
+        <span className="block text-[10px] font-extrabold text-slate-400 dark:text-slate-550 uppercase tracking-widest">
+          Filter by Subject
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {uniqueSubjects.map((subj) => (
+            <button
+              key={subj}
+              onClick={() => setSelectedSubject(subj)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                selectedSubject === subj
+                  ? 'bg-gradient-to-r from-indigo-650 to-violet-650 border-indigo-500 text-white shadow-sm shadow-indigo-500/10'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {subj}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {filteredSets.length === 0 ? (
-        <div className="bg-white border border-slate-200/80 rounded-3xl p-16 text-center shadow-sm space-y-6">
-          <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-16 text-center shadow-md space-y-6">
+          <div className="w-16 h-16 bg-slate-50 dark:bg-slate-950/40 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
             <HistoryIcon className="w-8 h-8" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-800">
-              {searchQuery ? 'No Matching Study Sets Found' : 'No Study Sets Yet'}
+            <h3 className="text-lg font-bold text-slate-850 dark:text-slate-200">
+              {searchQuery || selectedSubject !== 'All Decks' ? 'No Matching Study Sets Found' : 'No Study Sets Yet'}
             </h3>
-            <p className="text-slate-500 text-sm max-w-sm mx-auto">
-              {searchQuery 
-                ? 'Try searching with a different keyword, source, or card type.'
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">
+              {searchQuery || selectedSubject !== 'All Decks'
+                ? 'Try adjusting your subject filter or search keyword.'
                 : 'Study notes and uploaded files will be stored in your history here.'}
             </p>
           </div>
-          {!searchQuery && (
-            <button
+          {(!searchQuery && selectedSubject === 'All Decks') && (
+            <Button
               onClick={() => navigate('/create')}
-              className="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-2xl shadow-sm text-sm transition-all cursor-pointer"
+              variant="primary"
+              icon={Plus}
             >
-              <span>Create Your First Set</span>
-            </button>
+              Create Your First Set
+            </Button>
           )}
         </div>
       ) : (
@@ -390,12 +420,12 @@ const History = () => {
 
             return Object.keys(setsBySubject).sort().map((subj) => (
               <div key={subj} className="space-y-4">
-                <div className="flex items-center gap-2 px-1 border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-2 px-1 border-b border-slate-100 dark:border-slate-800/80 pb-2">
                   <BookOpen className="w-4 h-4 text-indigo-500" />
-                  <h2 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">{subj}</h2>
-                  <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full font-bold">
+                  <h2 className="text-xs font-extrabold text-slate-700 dark:text-slate-400 uppercase tracking-widest">{subj}</h2>
+                  <Badge variant="info">
                     {setsBySubject[subj].length} {setsBySubject[subj].length === 1 ? 'set' : 'sets'}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="space-y-6">
@@ -405,9 +435,9 @@ const History = () => {
                     const typeLabel = set.flashcard_type === 'mcq' ? 'MCQ' : set.flashcard_type === 'fillup' ? 'FILLUP' : 'QA';
                     
                     return (
-                      <div 
+                      <Card 
                         key={set.id}
-                        className="bg-white rounded-3xl border border-slate-200/80 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
+                        className="bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/85 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
                       >
                         {/* Header Row */}
                         <div className="p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
@@ -421,45 +451,41 @@ const History = () => {
                                     type="text"
                                     value={editTitleValue}
                                     onChange={(e) => setEditTitleValue(e.target.value)}
-                                    className="block w-full px-3 py-1.5 border border-indigo-300 rounded-xl text-slate-800 text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="block w-full px-3 py-1.5 border border-indigo-300 dark:border-indigo-900 rounded-xl text-slate-850 dark:text-white bg-white dark:bg-slate-950 text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     placeholder="Set Title"
                                   />
                                   <button 
                                     onClick={() => saveRenameSet(set.id)}
-                                    className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-all cursor-pointer"
+                                    className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 rounded-xl transition-all cursor-pointer"
                                   >
                                     <Check className="w-4 h-4" />
                                   </button>
                                   <button 
                                     onClick={cancelRenameSet}
-                                    className="p-2 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                                    className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
                                   >
                                     <X className="w-4 h-4" />
                                   </button>
                                 </div>
                               ) : (
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <h3 className="text-xl font-extrabold text-slate-850 leading-tight">
+                                  <h3 className="text-lg font-extrabold text-slate-850 dark:text-white leading-tight">
                                     {set.title}
                                   </h3>
                                   <button 
                                     onClick={() => startRenameSet(set)}
-                                    className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
+                                    className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-all cursor-pointer"
                                     title="Rename study set"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
                                   </button>
-                                  <span className="text-[9px] px-2 py-0.5 bg-slate-100 text-slate-550 font-bold rounded">
-                                    {sourceLabel}
-                                  </span>
-                                  <span className="text-[9px] px-2 py-0.5 bg-indigo-50 text-indigo-700 font-bold rounded">
-                                    {typeLabel}
-                                  </span>
+                                  <Badge variant="secondary">{sourceLabel}</Badge>
+                                  <Badge variant="info">{typeLabel}</Badge>
                                   {set.folder_name && (
-                                    <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 bg-pink-50 text-pink-705 font-bold rounded border border-pink-100/50">
-                                      <Folder className="w-2.5 h-2.5" />
-                                      <span>{set.folder_name}</span>
-                                    </span>
+                                    <Badge variant="warning" className="normal-case">
+                                      <Folder className="w-2.5 h-2.5 mr-1 inline" />
+                                      {set.folder_name}
+                                    </Badge>
                                   )}
                                 </div>
                               )}
@@ -483,345 +509,350 @@ const History = () => {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <button
+                          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                            <Button
                               onClick={() => toggleExpandSet(set.id)}
-                              className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 border border-slate-250 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm cursor-pointer"
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-initial h-10 px-4"
                             >
-                              <span>{isExpanded ? 'Hide Cards' : 'View Cards'}</span>
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </button>
+                              <span>{isExpanded ? 'Hide' : 'Cards'}</span>
+                              {isExpanded ? <ChevronUp className="w-4 h-4 ml-1.5" /> : <ChevronDown className="w-4 h-4 ml-1.5" />}
+                            </Button>
                             
-                            <button
+                            <Button
                               onClick={() => navigate(`/review?setId=${set.id}`)}
-                              className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md cursor-pointer"
+                              variant="success"
+                              size="sm"
+                              className="flex-1 sm:flex-initial h-10 px-4"
+                              icon={Play}
                             >
-                              <Play className="w-4 h-4 fill-white" />
-                              <span>Study</span>
-                            </button>
+                              Study
+                            </Button>
 
                             <button
                               onClick={() => handleExportCSV(set.id, set.title)}
-                              className="p-2.5 border border-slate-250 hover:bg-indigo-50 text-slate-400 hover:text-indigo-650 rounded-xl transition-all cursor-pointer"
+                              className="p-2.5 border border-slate-200 dark:border-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 rounded-xl transition-all cursor-pointer"
                               title="Export CSV (Anki compatible)"
                             >
-                              <Download className="w-4 h-4" />
+                              <Download className="w-4.5 h-4.5" />
                             </button>
                             
                             <button 
                               onClick={() => setSetToDelete(set)}
-                              className="p-2.5 border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all cursor-pointer"
+                              className="p-2.5 border border-slate-200 dark:border-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600 rounded-xl transition-all cursor-pointer"
                               title="Delete study set"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4.5 h-4.5" />
                             </button>
                           </div>
                         </div>
 
                         {/* Expanded Card Details Accordion */}
                         {isExpanded && (
-                          <div className="border-t border-slate-100 bg-slate-50/50 p-6 sm:p-8 space-y-6">
+                          <div className="border-t border-slate-100 dark:border-slate-850/80 bg-slate-50/50 dark:bg-slate-950/10 p-6 sm:p-8 space-y-6">
                             {/* Notes Detail */}
-                            <div className="bg-white p-5 rounded-2xl border border-slate-200/50 space-y-2">
-                              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 space-y-2">
+                              <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                 <FileText className="w-4 h-4 text-indigo-500" />
                                 <span>Original Notes Source</span>
                               </h4>
-                      <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-medium">
-                        {set.notes}
-                      </p>
-                    </div>
-
-                    {/* Cards grid */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-xs font-extrabold text-slate-450 uppercase tracking-wider">
-                          Set Cards List
-                        </h4>
-                        
-                        {addingToSetId !== set.id && (
-                          <button
-                            onClick={() => setAddingToSetId(set.id)}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Add Flashcard</span>
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Manual Add Card Form panel */}
-                      {addingToSetId === set.id && (
-                        <div className="bg-indigo-50/40 p-6 rounded-2xl border border-indigo-100/80 space-y-4 animate-fade-in">
-                          <div className="flex justify-between items-center border-b border-indigo-100 pb-2">
-                            <h5 className="text-sm font-bold text-indigo-900 flex items-center gap-1.5">
-                              <HelpCircle className="w-4 h-4" />
-                              <span>Add Custom Flashcard</span>
-                            </h5>
-                            <button 
-                              onClick={() => setAddingToSetId(null)}
-                              className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Card Type</label>
-                              <select 
-                                value={newCardData.type}
-                                onChange={(e) => handleNewCardChange('type', e.target.value)}
-                                className="block w-full px-3 py-2 border border-slate-200 bg-white rounded-xl text-slate-700 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                              >
-                                <option value="qa">Question & Answer</option>
-                                <option value="fillup">Fill in the Blank</option>
-                                <option value="mcq">Multiple Choice (MCQ)</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Difficulty</label>
-                              <select 
-                                value={newCardData.difficulty}
-                                onChange={(e) => handleNewCardChange('difficulty', e.target.value)}
-                                className="block w-full px-3 py-2 border border-slate-200 bg-white rounded-xl text-slate-700 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                              >
-                                <option value="easy">Easy</option>
-                                <option value="medium">Medium</option>
-                                <option value="hard">Hard</option>
-                              </select>
+                              <p className="text-slate-655 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line font-medium">
+                                {set.notes}
+                              </p>
                             </div>
 
-                            <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-slate-500 mb-1">
-                                {newCardData.type === 'fillup' ? 'Statement (use ______ for blank)' : 'Question Text'}
-                              </label>
-                              <textarea 
-                                value={newCardData.question}
-                                onChange={(e) => handleNewCardChange('question', e.target.value)}
-                                className="block w-full px-3 py-2 border border-slate-200 bg-white rounded-xl text-slate-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 h-16"
-                                placeholder={newCardData.type === 'fillup' ? "Example: Photosynthesis occurs in ______." : "Example: What is cellular energy?"}
-                              />
-                            </div>
-
-                            <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-slate-500 mb-1">Correct Answer</label>
-                              <input 
-                                type="text"
-                                value={newCardData.answer}
-                                onChange={(e) => handleNewCardChange('answer', e.target.value)}
-                                className="block w-full px-3 py-2 border border-slate-200 bg-white rounded-xl text-slate-800 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                placeholder="Example: chloroplasts"
-                              />
-                            </div>
-
-                            {/* MCQ Options inputs */}
-                            {newCardData.type === 'mcq' && (
-                              <div className="md:col-span-2 space-y-2 bg-white p-4 rounded-xl border border-slate-150">
-                                <label className="block text-xs font-bold text-slate-500">Choice Options (must include the correct answer)</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {newCardData.options.map((opt, oIdx) => (
-                                    <div key={oIdx} className="flex items-center gap-1.5">
-                                      <span className="text-[10px] font-extrabold text-slate-400">{String.fromCharCode(65 + oIdx)}.</span>
-                                      <input 
-                                        type="text"
-                                        value={opt}
-                                        onChange={(e) => handleNewCardChange('options', e.target.value, oIdx)}
-                                        className="block w-full px-2 py-1.5 border border-slate-200 rounded-lg text-slate-700 text-xs font-medium"
-                                        placeholder={`Option ${oIdx + 1}`}
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
+                            {/* Cards grid */}
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-[10px] font-extrabold text-slate-450 uppercase tracking-widest">
+                                  Set Cards List
+                                </h4>
+                                
+                                {addingToSetId !== set.id && (
+                                  <button
+                                    onClick={() => setAddingToSetId(set.id)}
+                                    className="inline-flex items-center gap-1 text-xs font-bold text-indigo-650 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>Add Flashcard</span>
+                                  </button>
+                                )}
                               </div>
-                            )}
-                          </div>
 
-                          <div className="flex gap-2 justify-end">
-                            <button 
-                              onClick={() => saveNewCard(set.id)}
-                              className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer"
-                            >
-                              <Save className="w-3.5 h-3.5" />
-                              <span>Save Card</span>
-                            </button>
-                            <button 
-                              onClick={() => setAddingToSetId(null)}
-                              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold px-4 py-2 rounded-xl text-xs cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {set.cards.map((card, idx) => {
-                          const isEditingCard = editingCardId === card.id;
-                          const isDeletingCard = deletingCardId === card.id;
-
-                          return (
-                            <div 
-                              key={card.id || idx}
-                              className={`bg-white p-5 rounded-2xl border shadow-sm flex flex-col justify-between gap-4 transition-all ${
-                                isEditingCard ? 'border-indigo-300 ring-1 ring-indigo-50/50' : 'border-slate-200/60'
-                              }`}
-                            >
-                              {isEditingCard ? (
-                                /* Card Edit Inputs Form */
-                                <div className="space-y-3">
-                                  <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                                    <span className="text-[10px] font-bold text-indigo-600">Editing Card #{idx + 1}</span>
-                                    <select
-                                      value={editCardData.difficulty}
-                                      onChange={(e) => handleEditCardChange('difficulty', e.target.value)}
-                                      className="px-1.5 py-0.5 border border-slate-200 rounded text-[9px] font-bold bg-white"
-                                    >
-                                      <option value="easy">Easy</option>
-                                      <option value="medium">Medium</option>
-                                      <option value="hard">Hard</option>
-                                    </select>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <div>
-                                      <label className="block text-[9px] font-bold text-slate-400 uppercase">Question / Prompt</label>
-                                      <textarea 
-                                        value={editCardData.question}
-                                        onChange={(e) => handleEditCardChange('question', e.target.value)}
-                                        className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-slate-800 text-xs font-medium h-12 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                      />
-                                    </div>
-
-                                    {/* Edit MCQ options if MCQ */}
-                                    {editCardData.type === 'mcq' && (
-                                      <div className="space-y-1.5 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                        <label className="block text-[8px] font-bold text-slate-400 uppercase">Choice Options</label>
-                                        <div className="grid grid-cols-2 gap-1.5">
-                                          {editCardData.options.map((opt, oIdx) => (
-                                            <input 
-                                              key={oIdx}
-                                              type="text"
-                                              value={opt}
-                                              onChange={(e) => handleEditCardChange('options', e.target.value, oIdx)}
-                                              className="px-1.5 py-1 border border-slate-200 rounded text-[10px] bg-white font-medium"
-                                              placeholder={`Choice ${String.fromCharCode(65 + oIdx)}`}
-                                            />
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    <div>
-                                      <label className="block text-[9px] font-bold text-slate-400 uppercase">Correct Answer</label>
-                                      <input 
-                                        type="text"
-                                        value={editCardData.answer}
-                                        onChange={(e) => handleEditCardChange('answer', e.target.value)}
-                                        className="w-full px-2 py-1 border border-slate-200 rounded-lg text-indigo-955 text-xs font-bold focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="flex gap-2 justify-end border-t border-slate-50 pt-2">
+                              {/* Manual Add Card Form panel */}
+                              {addingToSetId === set.id && (
+                                <div className="bg-indigo-50/20 dark:bg-indigo-950/15 p-6 rounded-2xl border border-indigo-150 dark:border-indigo-900/50 space-y-4 animate-fade-in">
+                                  <div className="flex justify-between items-center border-b border-indigo-100 dark:border-indigo-900/40 pb-2">
+                                    <h5 className="text-sm font-bold text-indigo-900 dark:text-indigo-400 flex items-center gap-1.5">
+                                      <HelpCircle className="w-4 h-4" />
+                                      <span>Add Custom Flashcard</span>
+                                    </h5>
                                     <button 
-                                      onClick={() => saveEditCard(set.id, card.id)}
-                                      className="p-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-all cursor-pointer"
-                                      title="Save changes"
-                                    >
-                                      <Check className="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                      onClick={() => setEditingCardId(null)}
-                                      className="p-1 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg transition-all cursor-pointer"
-                                      title="Discard changes"
+                                      onClick={() => setAddingToSetId(null)}
+                                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
                                     >
                                       <X className="w-4 h-4" />
                                     </button>
                                   </div>
-                                </div>
-                              ) : (
-                                /* Normal Card View */
-                                <>
-                                  <div className="flex justify-between items-center text-[10px] font-bold">
-                                    <span className="text-slate-400">Card #{idx + 1}</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className={`px-2 py-0.5 border rounded-full ${getDifficultyColor(card.difficulty)}`}>
-                                        {card.difficulty}
-                                      </span>
-                                      
-                                      <button 
-                                        onClick={() => startEditCard(card)}
-                                        className="p-1 text-slate-400 hover:text-indigo-600 rounded hover:bg-slate-50 transition-all cursor-pointer"
-                                        title="Edit card content"
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Card Type</label>
+                                      <select 
+                                        value={newCardData.type}
+                                        onChange={(e) => handleNewCardChange('type', e.target.value)}
+                                        className="block w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl text-slate-705 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
                                       >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button 
-                                        onClick={() => setCardToDelete({ setId: set.id, cardId: card.id, question: card.question })}
-                                        className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-50 transition-all cursor-pointer"
-                                        title="Delete card"
+                                        <option value="qa">Question & Answer</option>
+                                        <option value="fillup">Fill in the Blank</option>
+                                        <option value="mcq">Multiple Choice (MCQ)</option>
+                                      </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Difficulty</label>
+                                      <select 
+                                        value={newCardData.difficulty}
+                                        onChange={(e) => handleNewCardChange('difficulty', e.target.value)}
+                                        className="block w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl text-slate-705 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
                                       >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
+                                        <option value="easy">Easy</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="hard">Hard</option>
+                                      </select>
                                     </div>
-                                  </div>
-                                  <div className="space-y-3">
-                                    <div>
-                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Question</span>
-                                      <p className="text-slate-800 font-bold text-sm leading-snug">{card.question}</p>
+
+                                    <div className="md:col-span-2 space-y-1">
+                                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">
+                                        {newCardData.type === 'fillup' ? 'Statement (use ______ for blank)' : 'Question Text'}
+                                      </label>
+                                      <textarea 
+                                        value={newCardData.question}
+                                        onChange={(e) => handleNewCardChange('question', e.target.value)}
+                                        className="block w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl text-slate-800 dark:text-slate-100 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/25 h-16"
+                                        placeholder={newCardData.type === 'fillup' ? "Example: Photosynthesis occurs in ______." : "Example: What is cellular energy?"}
+                                      />
                                     </div>
-                                    
-                                    {/* MCQ Option Listing inside Accordion */}
-                                    {card.options && card.options.length > 0 && (
-                                      <div className="mt-2 grid grid-cols-1 gap-1 border-t border-slate-50 pt-2">
-                                        {card.options.map((opt, oIdx) => {
-                                          const letter = String.fromCharCode(65 + oIdx);
-                                          const isCorrect = opt === card.answer;
-                                          return (
-                                            <div 
-                                              key={oIdx}
-                                              className={`flex items-center space-x-2 py-1 px-2 border rounded-lg text-[11px] font-bold ${
-                                                isCorrect 
-                                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-                                                  : 'bg-slate-50/50 border-slate-100 text-slate-500'
-                                              }`}
-                                            >
-                                              <span className="font-extrabold mr-1">{letter}.</span>
-                                              <span>{opt}</span>
-                                              {isCorrect && <Check className="w-3 h-3 text-emerald-600 ml-auto flex-shrink-0" />}
+
+                                    <div className="md:col-span-2 space-y-1">
+                                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Correct Answer</label>
+                                      <input 
+                                        type="text"
+                                        value={newCardData.answer}
+                                        onChange={(e) => handleNewCardChange('answer', e.target.value)}
+                                        className="block w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl text-slate-800 dark:text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
+                                        placeholder="Example: chloroplasts"
+                                      />
+                                    </div>
+
+                                    {/* MCQ Options inputs */}
+                                    {newCardData.type === 'mcq' && (
+                                      <div className="md:col-span-2 space-y-2 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-150 dark:border-slate-800">
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Choice Options (must include correct answer)</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          {newCardData.options.map((opt, oIdx) => (
+                                            <div key={oIdx} className="flex items-center gap-1.5">
+                                              <span className="text-[10px] font-extrabold text-slate-400">{String.fromCharCode(65 + oIdx)}.</span>
+                                              <input 
+                                                type="text"
+                                                value={opt}
+                                                onChange={(e) => handleNewCardChange('options', e.target.value, oIdx)}
+                                                className="block w-full px-2 py-1.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg text-slate-700 dark:text-slate-250 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                placeholder={`Option ${oIdx + 1}`}
+                                              />
                                             </div>
-                                          );
-                                        })}
+                                          ))}
+                                        </div>
                                       </div>
                                     )}
+                                  </div>
 
-                                    <div className="border-t border-slate-50 pt-2">
-                                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide block">Answer</span>
-                                      <p className="text-indigo-950 font-bold text-xs leading-snug">{card.answer}</p>
-                                    </div>
+                                  <div className="flex gap-2 justify-end">
+                                    <Button 
+                                      onClick={() => saveNewCard(set.id)}
+                                      variant="success"
+                                      size="sm"
+                                      icon={Save}
+                                    >
+                                      Save Card
+                                    </Button>
+                                    <Button 
+                                      onClick={() => setAddingToSetId(null)}
+                                      variant="outline"
+                                      size="sm"
+                                    >
+                                      Cancel
+                                    </Button>
                                   </div>
-                                  <div className="flex items-center justify-between text-[9px] font-semibold text-slate-400 border-t border-slate-50 pt-2">
-                                    <span>Status: <span className={`font-bold ${card.status === 'known' ? 'text-emerald-600' : 'text-amber-500'}`}>{card.status === 'known' ? 'Known' : 'Needs Practice'}</span></span>
-                                    <span>Reviews: <span className="text-slate-700 font-bold">{card.reviewCount}</span></span>
-                                    <span>Priority: <span className="text-slate-700 font-bold">{card.priority}</span></span>
-                                  </div>
-                                </>
+                                </div>
                               )}
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {set.cards.map((card, idx) => {
+                                  const isEditingCard = editingCardId === card.id;
+
+                                  return (
+                                    <Card 
+                                      key={card.id || idx}
+                                      className={`p-5 bg-white dark:bg-slate-900 border shadow-sm flex flex-col justify-between gap-4 transition-all ${
+                                        isEditingCard ? 'border-indigo-400 dark:border-indigo-700/80 ring-1 ring-indigo-500/20' : 'border-slate-200/60 dark:border-slate-800/80'
+                                      }`}
+                                    >
+                                      {isEditingCard ? (
+                                        /* Card Edit Inputs Form */
+                                        <div className="space-y-3">
+                                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-850 pb-1.5">
+                                            <span className="text-[10px] font-extrabold text-indigo-650 dark:text-indigo-455">Editing Card #{idx + 1}</span>
+                                            <select
+                                              value={editCardData.difficulty}
+                                              onChange={(e) => handleEditCardChange('difficulty', e.target.value)}
+                                              className="px-1.5 py-0.5 border border-slate-200 dark:border-slate-800 rounded text-[9px] font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                                            >
+                                              <option value="easy">Easy</option>
+                                              <option value="medium">Medium</option>
+                                              <option value="hard">Hard</option>
+                                            </select>
+                                          </div>
+
+                                          <div className="space-y-2">
+                                            <div>
+                                              <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Question / Prompt</label>
+                                              <textarea 
+                                                value={editCardData.question}
+                                                onChange={(e) => handleEditCardChange('question', e.target.value)}
+                                                className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-805 bg-white dark:bg-slate-950 rounded-lg text-slate-800 dark:text-slate-100 text-xs font-medium h-12 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                              />
+                                            </div>
+
+                                            {/* Edit MCQ options if MCQ */}
+                                            {editCardData.type === 'mcq' && (
+                                              <div className="space-y-1.5 bg-slate-50 dark:bg-slate-950/20 p-2 rounded-lg border border-slate-100 dark:border-slate-850">
+                                                <label className="block text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase">Choice Options</label>
+                                                <div className="grid grid-cols-2 gap-1.5">
+                                                  {editCardData.options.map((opt, oIdx) => (
+                                                    <input 
+                                                      key={oIdx}
+                                                      type="text"
+                                                      value={opt}
+                                                      onChange={(e) => handleEditCardChange('options', e.target.value, oIdx)}
+                                                      className="px-1.5 py-1 border border-slate-200 dark:border-slate-800 rounded text-[10px] bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-250 font-medium"
+                                                      placeholder={`Choice ${String.fromCharCode(65 + oIdx)}`}
+                                                    />
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            <div>
+                                              <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Correct Answer</label>
+                                              <input 
+                                                type="text"
+                                                value={editCardData.answer}
+                                                onChange={(e) => handleEditCardChange('answer', e.target.value)}
+                                                className="w-full px-2 py-1 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 rounded-lg text-indigo-955 dark:text-indigo-400 text-xs font-bold focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="flex gap-2 justify-end border-t border-slate-50 dark:border-slate-850/50 pt-2">
+                                            <button 
+                                              onClick={() => saveEditCard(set.id, card.id)}
+                                              className="p-1 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-450 rounded-lg transition-all cursor-pointer"
+                                              title="Save changes"
+                                            >
+                                              <Check className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                              onClick={() => setEditingCardId(null)}
+                                              className="p-1 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg transition-all cursor-pointer"
+                                              title="Discard changes"
+                                            >
+                                              <X className="w-4 h-4" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        /* Normal Card View */
+                                        <>
+                                          <div className="flex justify-between items-center text-[10px] font-bold">
+                                            <span className="text-slate-400">Card #{idx + 1}</span>
+                                            <div className="flex items-center gap-2">
+                                              <Badge variant={getDifficultyBadge(card.difficulty)}>
+                                                {card.difficulty}
+                                              </Badge>
+                                              
+                                              <button 
+                                                onClick={() => startEditCard(card)}
+                                                className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                                title="Edit card content"
+                                              >
+                                                <Pencil className="w-3.5 h-3.5" />
+                                              </button>
+                                              <button 
+                                                onClick={() => setCardToDelete({ setId: set.id, cardId: card.id, question: card.question })}
+                                                className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                                title="Delete card"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                          <div className="space-y-3 flex-1">
+                                            <div>
+                                              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wide block">Question</span>
+                                              <p className="text-slate-800 dark:text-slate-205 font-bold text-sm leading-snug">{card.question}</p>
+                                            </div>
+                                            
+                                            {/* MCQ Option Listing inside Accordion */}
+                                            {card.options && card.options.length > 0 && (
+                                              <div className="mt-2 grid grid-cols-1 gap-1 border-t border-slate-50 dark:border-slate-850 pt-2">
+                                                {card.options.map((opt, oIdx) => {
+                                                  const letter = String.fromCharCode(65 + oIdx);
+                                                  const isCorrect = opt === card.answer;
+                                                  return (
+                                                    <div 
+                                                      key={oIdx}
+                                                      className={`flex items-center space-x-2 py-1 px-2 border rounded-lg text-[11px] font-bold ${
+                                                        isCorrect 
+                                                          ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-400' 
+                                                          : 'bg-slate-50/50 dark:bg-slate-950/10 border-slate-100 dark:border-slate-850 text-slate-500 dark:text-slate-450'
+                                                      }`}
+                                                    >
+                                                      <span className="font-extrabold mr-1">{letter}.</span>
+                                                      <span>{opt}</span>
+                                                      {isCorrect && <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-450 ml-auto flex-shrink-0" />}
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            )}
+
+                                            <div className="border-t border-slate-55 dark:border-slate-850/50 pt-2">
+                                              <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wide block">Answer</span>
+                                              <p className="text-indigo-950 dark:text-slate-300 font-extrabold text-xs leading-snug">{card.answer}</p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center justify-between text-[9px] font-semibold text-slate-400 dark:text-slate-500 border-t border-slate-50 dark:border-slate-850/50 pt-2">
+                                            <span>Status: <span className={`font-bold ${card.status === 'known' ? 'text-emerald-600' : 'text-amber-500'}`}>{card.status === 'known' ? 'Known' : 'Needs Practice'}</span></span>
+                                            <span>Reviews: <span className="text-slate-700 dark:text-slate-300 font-bold">{card.reviewCount}</span></span>
+                                            <span>Priority: <span className="text-slate-700 dark:text-slate-300 font-bold">{card.priority}</span></span>
+                                          </div>
+                                        </>
+                                      )}
+                                    </Card>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
-    ));
-  })()}
+            ));
+          })()}
         </div>
       )}
 

@@ -81,38 +81,49 @@ flashcard-generation/
 
 ### 1. Backend Setup
 
-1. **Navigate to backend and create a Virtual Environment**:
+1. **Create a Virtual Environment (in the project root)**:
    ```bash
-   cd backend
    python -m venv venv
    ```
-2. **Activate the Virtual Environment**:
-   * **Windows (PowerShell)**: `.\venv\Scripts\Activate.ps1`
-   * **macOS/Linux**: `source venv/bin/activate`
-3. **Install Dependencies**:
+2. **Navigate to the backend folder**:
+   ```bash
+   cd backend
+   ```
+3. **Activate the Virtual Environment**:
+   * **Windows (PowerShell)**: `..\venv\Scripts\Activate.ps1`
+   * **Windows (CMD)**: `..\venv\Scripts\activate`
+   * **macOS/Linux**: `source ../venv/bin/activate`
+4. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-4. **Download the spaCy Language Model**:
+5. **Download the spaCy Language Model**:
    ```bash
    python download_model.py
    ```
-5. **Configure Environment Variables**:
+6. **Configure Environment Variables**:
    Copy `.env.example` to `.env` and fill in your connection details:
    ```ini
    MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/smartflash?retryWrites=true&w=majority
    JWT_SECRET=super_secure_development_jwt_secret_key_32_chars
    ACCESS_TOKEN_EXPIRE_MINUTES=60
    ```
-6. **Run Unit Tests**:
+7. **Run Unit Tests**:
    Verifies that the NLP parsing engine is correctly extracting questions:
    ```bash
    python tests/test_api.py
    ```
-7. **Start the FastAPI Server**:
-   ```bash
-   uvicorn main:app --reload --host 127.0.0.1 --port 8000
-   ```
+8. **Start the FastAPI Server**:
+   * **Using the Shortcut Script (from Root Directory)**:
+     * **Windows**: Run `.\run_backend.bat` (or double-click it).
+     * **macOS/Linux**: Run `./run_backend.sh`.
+   * **Using Uvicorn Manually (from backend folder, with venv activated)**:
+     ```bash
+     uvicorn main:app --reload --host 127.0.0.1 --port 8000
+     ```
+   * **Using Uvicorn without manual activation (from backend folder)**:
+     * **Windows**: `..\venv\Scripts\python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000`
+     * **macOS/Linux**: `../venv/bin/python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000`
 
 ---
 

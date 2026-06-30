@@ -1,117 +1,224 @@
 @import "tailwindcss";
 
-/* Global Dark Mode Overrides */
-.dark body {
-  background-color: #0a0d14 !important;
-  color: #e2e8f0 !important;
+/* =============================================
+   TAILWIND v4: Use class-based dark mode
+   This makes dark: prefix respond to html.dark
+   instead of OS prefers-color-scheme
+   ============================================= */
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+/* =============================================
+   CSS CUSTOM PROPERTIES — THEME TOKENS
+   ============================================= */
+:root {
+  /* Light Theme */
+  --bg-base:       #f8fafc;
+  --bg-card:       rgba(255, 255, 255, 0.85);
+  --bg-surface:    rgba(248, 250, 252, 0.7);
+  --bg-input:      #ffffff;
+  --text-primary:  #0f172a;
+  --text-secondary:#475569;
+  --text-muted:    #94a3b8;
+  --border-color:  rgba(99, 102, 241, 0.12);
+  --aura-1:        rgba(99, 102, 241, 0.10);
+  --aura-2:        rgba(236, 72, 153, 0.10);
+  --aura-3:        rgba(14, 165, 233, 0.07);
+  --card-shadow:   0 8px 32px rgba(31, 38, 135, 0.06), 0 0 0 1px rgba(99,102,241,0.08);
+  --scrollbar:     rgba(99, 102, 241, 0.25);
 }
 
-.dark .bg-white {
-  background-color: #111622 !important;
-  border-color: #1e2638 !important;
+/* Dark Theme — applied when html has class="dark" */
+.dark {
+  --bg-base:       #06080f;
+  --bg-card:       rgba(14, 18, 32, 0.85);
+  --bg-surface:    rgba(10, 14, 24, 0.60);
+  --bg-input:      rgba(10, 14, 28, 0.80);
+  --text-primary:  #f1f5f9;
+  --text-secondary:#94a3b8;
+  --text-muted:    #64748b;
+  --border-color:  rgba(99, 102, 241, 0.22);
+  --aura-1:        rgba(79, 70, 229, 0.22);
+  --aura-2:        rgba(219, 39, 119, 0.20);
+  --aura-3:        rgba(6, 182, 212, 0.12);
+  --card-shadow:   0 8px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(99,102,241,0.12);
+  --scrollbar:     rgba(99, 102, 241, 0.40);
 }
 
-.dark .text-slate-900, 
-.dark .text-slate-850, 
-.dark .text-slate-800, 
-.dark .text-slate-700 {
-  color: #f8fafc !important;
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.dark .text-slate-500, 
-.dark .text-slate-400 {
-  color: #94a3b8 !important;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.dark .border-slate-200, 
-.dark .border-slate-200\/80, 
-.dark .border-slate-100 {
-  border-color: #1e2638 !important;
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
-.dark input, 
-.dark textarea, 
-.dark select {
-  background-color: #171d2b !important;
-  color: #f8fafc !important;
-  border-color: #2a344a !important;
+@keyframes aura-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(3%, -2%) scale(1.03); }
+  66%  { transform: translate(-2%, 3%) scale(0.97); }
+  100% { transform: translate(0, 0) scale(1); }
 }
 
-.dark input::placeholder, 
-.dark textarea::placeholder {
-  color: #64748b !important;
+.animate-slide-up   { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in    { animation: fade-in 0.35s ease-out forwards; }
+.animate-spin-slow  { animation: spin-slow 12s linear infinite; }
+
+/* =============================================
+   GLOBAL BODY — uses theme variables
+   ============================================= */
+html, body {
+  min-height: 100vh;
+  transition: background-color 0.4s ease, color 0.3s ease;
 }
 
-.dark .bg-slate-50, 
-.dark .bg-slate-50\/50 {
-  background-color: #0b0e16 !important;
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  /* Colorful ambient aura blobs via pseudo-element trick on html */
+  position: relative;
 }
 
-.dark .bg-indigo-50\/40 {
-  background-color: rgba(99, 102, 241, 0.08) !important;
+/* Ambient radial aura that adapts to theme */
+html::before,
+html::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  animation: aura-drift 18s ease-in-out infinite;
+  filter: blur(80px);
+  will-change: transform;
 }
 
-.dark .border-indigo-100\/80 {
-  border-color: rgba(99, 102, 241, 0.3) !important;
+html::before {
+  width: 600px;
+  height: 600px;
+  top: -15%;
+  left: -10%;
+  background: var(--aura-1);
+  animation-delay: 0s;
 }
 
-.dark .text-indigo-900 {
-  color: #c7d2fe !important;
+html::after {
+  width: 700px;
+  height: 700px;
+  bottom: -20%;
+  right: -15%;
+  background: var(--aura-2);
+  animation-delay: -9s;
 }
 
-.dark .bg-slate-50\/50 {
-  background-color: #0f131e !important;
+/* All page content sits above the aura */
+#root {
+  position: relative;
+  z-index: 1;
 }
 
-/* Premium Scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* =============================================
+   CARDS & SURFACES — use variables
+   ============================================= */
+.bg-white {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--card-shadow) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.05);
+.bg-slate-50,
+.bg-slate-50\/50 {
+  background-color: var(--bg-surface) !important;
 }
 
+/* =============================================
+   TYPOGRAPHY — use variables
+   ============================================= */
+.text-slate-900,
+.text-slate-850,
+.text-slate-800,
+.text-slate-700 {
+  color: var(--text-primary) !important;
+}
+
+.text-slate-600,
+.text-slate-550,
+.text-slate-500 {
+  color: var(--text-secondary) !important;
+}
+
+.text-slate-400 {
+  color: var(--text-muted) !important;
+}
+
+/* =============================================
+   BORDERS — use variables
+   ============================================= */
+.border-slate-200,
+.border-slate-200\/80,
+.border-slate-100 {
+  border-color: var(--border-color) !important;
+}
+
+/* =============================================
+   FORM ELEMENTS — use variables
+   ============================================= */
+input,
+textarea,
+select {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+  outline: none !important;
+}
+
+/* Dark-specific overrides for indigo-tinted texts that don't adapt via var() */
+.dark .text-indigo-900  { color: #e0e7ff !important; }
+.dark .bg-indigo-50\/40 { background-color: rgba(99, 102, 241, 0.12) !important; }
+.dark .border-indigo-100\/80 { border-color: rgba(99, 102, 241, 0.4) !important; }
+
+/* =============================================
+   SCROLLBAR
+   ============================================= */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.2);
+  background: var(--scrollbar);
   border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
+::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.4);
-}
-
-/* Dark Mode Scrollbars fallback */
-.dark ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02) !important;
-}
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
-}
-
-/* Perspective Utilities for 3D Flashcard Flip */
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-.transform-style-3d {
-  transform-style: preserve-3d;
-}
-
-.backface-hidden {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.rotate-y-180 {
-  transform: rotateY(180deg);
-}
-
-/* Smooth transition tweaks */
-.transition-transform-500 {
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* =============================================
+   3D FLASHCARD UTILITIES
+   ============================================= */
+.perspective-1000      { perspective: 1000px; }
+.transform-style-3d    { transform-style: preserve-3d; }
+.backface-hidden       { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.rotate-y-180          { transform: rotateY(180deg); }
+.transition-transform-500 { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }

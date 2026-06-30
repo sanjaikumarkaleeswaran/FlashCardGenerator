@@ -4,18 +4,21 @@ import {
   Check, 
   X, 
   Award, 
-  RotateCcw, 
-  ArrowRight, 
   LayoutDashboard, 
   HelpCircle, 
   Volume2,
   Pause,
   Sliders,
-  Sparkles
+  Sparkles,
+  ArrowRight,
+  BookOpen
 } from 'lucide-react';
 import { flashcardService } from '../services/api';
 import Flashcard from '../components/Flashcard';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Button from '../components/ui/Button';
+import Card, { CardContent } from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
 
 const Review = () => {
   const [searchParams] = useSearchParams();
@@ -200,10 +203,10 @@ const Review = () => {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto my-12 p-6 bg-rose-50 text-rose-700 border border-rose-100 rounded-3xl text-center space-y-4">
+      <div className="max-w-md mx-auto my-12 p-6 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 rounded-3xl text-center space-y-4">
         <p className="font-bold">{error}</p>
-        <Link to="/dashboard" className="inline-block bg-indigo-600 text-white font-bold px-6 py-3 rounded-2xl">
-          Back to Dashboard
+        <Link to="/dashboard">
+          <Button variant="primary">Back to Dashboard</Button>
         </Link>
       </div>
     );
@@ -214,16 +217,20 @@ const Review = () => {
     const isCompletedSession = queue.length > 0;
     
     return (
-      <div className="max-w-md mx-auto my-12 bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xl text-center space-y-8 animate-slide-up">
-        <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-          <Award className="w-10 h-10 animate-bounce" />
+      <Card className="max-w-md mx-auto my-12 p-8 shadow-2xl text-center space-y-8 animate-slide-up bg-white/80 dark:bg-slate-900/80 backdrop-blur-md relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-tr from-indigo-500/15 to-pink-500/15 rounded-full blur-2xl" />
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-gradient-to-br from-emerald-500/15 to-cyan-500/15 rounded-full blur-2xl" />
+        <div className="relative">
+          <div className="w-24 h-24 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white rounded-full flex items-center justify-center mx-auto shadow-xl shadow-indigo-500/25">
+            <Award className="w-12 h-12 animate-bounce" />
+          </div>
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-extrabold text-slate-900">
-            {isCompletedSession ? 'Review Completed!' : 'Queue is Empty!'}
+          <h2 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+            {isCompletedSession ? 'Review Completed! 🎉' : 'Queue is Empty!'}
           </h2>
-          <p className="text-slate-500 text-sm font-medium">
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
             {isCompletedSession 
               ? 'Great job keeping up with your study goals today.' 
               : 'You have no pending flashcards to review. Create or upload text to generate new cards.'}
@@ -231,73 +238,79 @@ const Review = () => {
         </div>
 
         {isCompletedSession && (
-          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-sm font-semibold">
-            <div className="text-center">
-              <span className="block text-2xl font-extrabold text-emerald-600">{sessionKnown}</span>
-              <span className="text-xs text-slate-400">Mastered (Q &gt;= 3)</span>
+          <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 text-sm font-semibold">
+            <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
+              <span className="block text-3xl font-extrabold text-emerald-600 dark:text-emerald-450">{sessionKnown}</span>
+              <span className="text-xs text-emerald-700 dark:text-emerald-500 font-bold">✓ Mastered</span>
             </div>
-            <div className="text-center">
-              <span className="block text-2xl font-extrabold text-amber-600">{sessionNotKnown}</span>
-              <span className="text-xs text-slate-400">Practice (Q &lt; 3)</span>
+            <div className="text-center p-4 bg-amber-50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+              <span className="block text-3xl font-extrabold text-amber-600 dark:text-amber-450">{sessionNotKnown}</span>
+              <span className="text-xs text-amber-700 dark:text-amber-500 font-bold">↺ Practice</span>
             </div>
           </div>
         )}
 
         <div className="flex flex-col gap-3">
-          <Link
-            to="/dashboard"
-            className="w-full inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3.5 rounded-2xl shadow-md transition-all text-sm cursor-pointer"
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Go to Dashboard</span>
+          <Link to="/dashboard" className="w-full">
+            <Button variant="primary" className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-none shadow-lg shadow-indigo-500/15" icon={LayoutDashboard}>
+              Go to Dashboard
+            </Button>
           </Link>
-          <Link
-            to="/create"
-            className="w-full inline-flex items-center justify-center space-x-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-6 py-3.5 rounded-2xl shadow-sm transition-all text-sm cursor-pointer"
-          >
-            <span>Generate More Cards</span>
+          <Link to="/create" className="w-full">
+            <Button variant="outline" className="w-full">
+              Generate More Cards
+            </Button>
           </Link>
         </div>
-      </div>
+      </Card>
     );
   }
 
   const currentCard = queue[currentIndex];
   const cardType = currentCard.type || 'qa';
+  const progressPercent = ((currentIndex + 1) / queue.length) * 100;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 space-y-8 animate-fade-in">
+    <div className="max-w-2xl mx-auto px-4 py-10 space-y-6 animate-fade-in">
       {/* Header bar */}
-      <div className="flex justify-between items-center px-2">
+      <div className="flex justify-between items-center px-1">
         <div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+          <span className="text-[10px] font-extrabold text-slate-450 dark:text-slate-500 uppercase tracking-widest">
             Study Session
           </span>
-          <h2 className="text-lg font-extrabold text-slate-900">
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">
             Card {currentIndex + 1} of {queue.length}
           </h2>
         </div>
-        <div className="text-right">
-          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
+        <div>
+          <Badge variant="info" className="flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
             <span>Anki SM-2 Spaced Repetition</span>
-          </span>
+          </Badge>
         </div>
+      </div>
+
+      {/* Progress Bar - rainbow gradient */}
+      <div className="w-full bg-slate-100 dark:bg-slate-800/80 h-3 rounded-full overflow-hidden shadow-inner">
+        <div 
+          className="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-indigo-500 via-purple-500 via-pink-500 to-amber-400"
+          style={{ width: `${progressPercent}%` }}
+        />
       </div>
 
       {/* Render Dynamic Card Body depending on Card Type */}
       {cardType === 'mcq' ? (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lg p-8 space-y-6">
-          <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-            <span className="text-xs font-bold text-indigo-500 uppercase tracking-wide truncate max-w-[220px]">
+        <Card className="p-8 space-y-6 shadow-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/80 dark:border-slate-800/85">
+          <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800/50">
+            <span className="text-[10px] font-extrabold text-indigo-650 dark:text-indigo-400 uppercase tracking-widest truncate max-w-[220px]">
               Set: {currentCard.setTitle}
             </span>
             <div className="flex items-center gap-2">
               {/* TTS Controls */}
-              <div className="flex items-center bg-slate-50 border border-slate-200/60 rounded-xl p-0.5">
+              <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/50 rounded-xl p-0.5">
                 <button 
                   onClick={() => handleSpeak(currentCard.question)}
-                  className="p-1 hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
+                  className="p-1 hover:bg-slate-250/60 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-805 dark:hover:text-white rounded-lg transition-all cursor-pointer"
                   title={isPlaying && !isPaused ? "Pause reading" : isPaused ? "Resume reading" : "Speak Question"}
                 >
                   {isPlaying && !isPaused ? (
@@ -308,39 +321,37 @@ const Review = () => {
                 </button>
                 <button 
                   onClick={cycleSpeakRate}
-                  className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 hover:text-slate-700 transition-colors"
+                  className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
                   title="Cycle read speed"
                 >
                   {speakRate}x
                 </button>
               </div>
-              <span className="text-[10px] px-2 py-0.5 font-bold rounded-full border bg-purple-50 border-purple-200 text-purple-700 uppercase">
-                Multiple Choice
-              </span>
+              <Badge variant="info">Multiple Choice</Badge>
             </div>
           </div>
 
-          <h3 className="text-slate-800 text-lg sm:text-xl font-bold leading-relaxed">
+          <h3 className="text-slate-850 dark:text-slate-100 text-lg sm:text-xl font-extrabold leading-relaxed">
             {currentCard.question}
           </h3>
 
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-3 pt-2">
             {currentCard.options?.map((opt, oIdx) => {
               const letter = String.fromCharCode(65 + oIdx);
               const isSelected = selectedOption === opt;
               const isCorrectOption = opt === currentCard.answer;
 
-              let btnStyle = 'border-slate-200 bg-slate-50/50 hover:bg-slate-50';
+              let btnStyle = 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 hover:bg-slate-100/50 dark:hover:bg-slate-950/40 text-slate-800 dark:text-slate-200';
               if (hasChecked) {
                 if (isCorrectOption) {
-                  btnStyle = 'border-emerald-300 bg-emerald-50 text-emerald-800 font-bold';
+                  btnStyle = 'border-emerald-300 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-400 font-extrabold';
                 } else if (isSelected) {
-                  btnStyle = 'border-rose-300 bg-rose-50 text-rose-800 font-bold';
+                  btnStyle = 'border-rose-300 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-400 font-extrabold';
                 } else {
-                  btnStyle = 'border-slate-100 bg-slate-50/20 text-slate-400 opacity-60';
+                  btnStyle = 'border-slate-100 dark:border-slate-850 bg-slate-50/20 dark:bg-slate-950/10 text-slate-400 opacity-50';
                 }
               } else if (isSelected) {
-                btnStyle = 'border-indigo-600 bg-indigo-50 text-indigo-800 font-bold';
+                btnStyle = 'border-indigo-500 dark:border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-850 dark:text-indigo-400 font-extrabold';
               }
 
               return (
@@ -354,16 +365,16 @@ const Review = () => {
                     const correct = opt.trim().toLowerCase() === currentCard.answer.trim().toLowerCase();
                     setIsCorrect(correct);
                   }}
-                  className={`flex items-center space-x-3 w-full p-4 border rounded-2xl text-left text-sm font-semibold transition-all ${btnStyle} ${!hasChecked && 'cursor-pointer'}`}
+                  className={`flex items-center space-x-3 w-full p-4 border rounded-2xl text-left text-sm font-semibold transition-all duration-200 active:scale-[0.99] ${btnStyle} ${!hasChecked && 'cursor-pointer'}`}
                 >
-                  <span className={`w-6 h-6 flex items-center justify-center rounded-lg text-xs font-bold ${
+                  <span className={`w-6 h-6 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
                     hasChecked && isCorrectOption
                       ? 'bg-emerald-600 text-white'
                       : hasChecked && isSelected
                         ? 'bg-rose-600 text-white'
                         : isSelected
                           ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-200 text-slate-500'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                   }`}>
                     {letter}
                   </span>
@@ -372,19 +383,19 @@ const Review = () => {
               );
             })}
           </div>
-        </div>
+        </Card>
       ) : cardType === 'fillup' ? (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lg p-8 space-y-6">
-          <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-            <span className="text-xs font-bold text-indigo-500 uppercase tracking-wide truncate max-w-[220px]">
+        <Card className="p-8 space-y-6 shadow-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/80 dark:border-slate-800/85">
+          <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800/50">
+            <span className="text-[10px] font-extrabold text-indigo-650 dark:text-indigo-400 uppercase tracking-widest truncate max-w-[220px]">
               Set: {currentCard.setTitle}
             </span>
             <div className="flex items-center gap-2">
               {/* TTS Controls */}
-              <div className="flex items-center bg-slate-50 border border-slate-200/60 rounded-xl p-0.5">
+              <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/50 rounded-xl p-0.5">
                 <button 
                   onClick={() => handleSpeak(currentCard.question.replace("______", currentCard.answer))}
-                  className="p-1 hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
+                  className="p-1 hover:bg-slate-250/60 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg transition-all cursor-pointer"
                   title={isPlaying && !isPaused ? "Pause reading" : isPaused ? "Resume reading" : "Speak Statement"}
                 >
                   {isPlaying && !isPaused ? (
@@ -395,23 +406,21 @@ const Review = () => {
                 </button>
                 <button 
                   onClick={cycleSpeakRate}
-                  className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 hover:text-slate-700 transition-colors"
+                  className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
                   title="Cycle read speed"
                 >
                   {speakRate}x
                 </button>
               </div>
-              <span className="text-[10px] px-2 py-0.5 font-bold rounded-full border bg-amber-50 border-amber-200 text-amber-700 uppercase">
-                Fill in the Blank
-              </span>
+              <Badge variant="warning">Fill in the Blank</Badge>
             </div>
           </div>
 
-          <h3 className="text-slate-800 text-lg sm:text-xl font-bold leading-relaxed text-center py-6">
+          <h3 className="text-slate-850 dark:text-slate-100 text-lg sm:text-xl font-extrabold leading-relaxed text-center py-6">
             {currentCard.question}
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2">
             {!hasChecked ? (
               <form
                 onSubmit={(e) => {
@@ -429,30 +438,31 @@ const Review = () => {
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   placeholder="Type your answer here..."
-                  className="flex-1 p-4 border border-slate-200 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 p-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 text-slate-800 dark:text-slate-100 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
                 />
-                <button
+                <Button
                   type="submit"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-4 rounded-2xl shadow-sm text-sm cursor-pointer"
+                  variant="primary"
+                  className="h-[52px]"
                 >
                   Check Answer
-                </button>
+                </Button>
               </form>
             ) : (
-              <div className={`p-4 rounded-2xl border ${
+              <div className={`p-5 rounded-2xl border ${
                 isCorrect 
-                  ? 'bg-emerald-50 border-emerald-100 text-emerald-800' 
-                  : 'bg-rose-50 border-rose-100 text-rose-800'
-              } space-y-2`}>
-                <div className="flex items-center space-x-2 font-bold text-sm">
+                  ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-400' 
+                  : 'bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50 text-rose-800 dark:text-rose-450'
+              } space-y-2.5`}>
+                <div className="flex items-center space-x-2 font-extrabold text-sm">
                   {isCorrect ? (
                     <>
-                      <Check className="w-5 h-5 text-emerald-600" />
+                      <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-450" />
                       <span>Correct!</span>
                     </>
                   ) : (
                     <>
-                      <X className="w-5 h-5 text-rose-600" />
+                      <X className="w-5 h-5 text-rose-600 dark:text-rose-450" />
                       <span>Incorrect!</span>
                     </>
                   )}
@@ -461,12 +471,12 @@ const Review = () => {
                   Your guess: <span className="font-bold underline">{userAnswer}</span>
                 </p>
                 <p className="text-xs font-bold">
-                  Correct answer: <span className="underline text-indigo-700">{currentCard.answer}</span>
+                  Correct answer: <span className="underline text-indigo-700 dark:text-indigo-400">{currentCard.answer}</span>
                 </p>
               </div>
             )}
           </div>
-        </div>
+        </Card>
       ) : (
         /* Standard QA 3D Flip Card */
         <Flashcard
@@ -477,16 +487,16 @@ const Review = () => {
       )}
 
       {/* Review Controls (SM-2 Grader panel) */}
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-xl mx-auto">
         {(cardType === 'qa' || hasChecked) ? (
-          <div className="space-y-4 max-w-xl mx-auto animate-fade-in">
+          <div className="space-y-4 animate-fade-in">
             
             {/* Toggle Advanced Slider option */}
             <div className="flex justify-between items-center px-1">
-              <span className="text-xs font-bold text-slate-500">Grade your recall quality:</span>
+              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Grade your recall quality:</span>
               <button 
                 onClick={() => setShowAdvancedGrading(!showAdvancedGrading)}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 text-[10px] font-extrabold text-indigo-650 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
               >
                 <Sliders className="w-3 h-3" />
                 <span>{showAdvancedGrading ? "Hide 0-5 Grid" : "Show Anki 0-5 Grid"}</span>
@@ -498,59 +508,59 @@ const Review = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => handleReviewAction('not_known')}
-                  className={`w-full sm:flex-1 inline-flex items-center justify-center space-x-2 border py-4 rounded-2xl transition-all shadow-sm font-bold text-sm cursor-pointer ${
+                  className={`w-full sm:flex-1 h-14 px-4 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer ${
                     (cardType !== 'qa' && !isCorrect)
-                      ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700 shadow-md ring-2 ring-rose-200'
-                      : 'bg-rose-50 border-rose-200 hover:bg-rose-100/50 text-rose-750'
+                      ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-rose-500/20 border-none'
+                      : 'bg-rose-50 dark:bg-rose-950/20 border-2 border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/30'
                   }`}
                 >
-                  <X className="w-4 h-4" />
-                  <span>Not Known (Practice)</span>
+                  <X className="w-5 h-5" />
+                  <span>Not Known</span>
                 </button>
                 <button
                   onClick={() => handleReviewAction('known')}
-                  className={`w-full sm:flex-1 inline-flex items-center justify-center space-x-2 border py-4 rounded-2xl transition-all shadow-sm font-bold text-sm cursor-pointer ${
+                  className={`w-full sm:flex-1 h-14 px-4 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer ${
                     (cardType !== 'qa' && isCorrect)
-                      ? 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700 shadow-md ring-2 ring-emerald-200'
-                      : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100/50 text-emerald-755'
+                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-emerald-500/20 border-none'
+                      : 'bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/30'
                   }`}
                 >
-                  <Check className="w-4 h-4" />
-                  <span>Known (Keep Schedule)</span>
+                  <Check className="w-5 h-5" />
+                  <span>Known ✓</span>
                 </button>
               </div>
             ) : (
               /* Anki 0-5 Quality Buttons Grid */
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-250/50 shadow-inner">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/20">
                 {[
-                  { q: 0, label: "Blackout", style: "bg-slate-900 border-slate-900 text-white hover:bg-slate-800" },
-                  { q: 1, label: "Incorrect", style: "bg-rose-600 border-rose-600 text-white hover:bg-rose-750" },
-                  { q: 2, label: "Familiar", style: "bg-orange-500 border-orange-500 text-white hover:bg-orange-600" },
-                  { q: 3, label: "Difficult", style: "bg-amber-500 border-amber-500 text-white hover:bg-amber-600" },
-                  { q: 4, label: "Good", style: "bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700" },
-                  { q: 5, label: "Perfect", style: "bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700" }
+                  { q: 0, label: 'Blackout', style: 'bg-gradient-to-b from-slate-800 to-slate-950 text-white' },
+                  { q: 1, label: 'Wrong',    style: 'bg-gradient-to-b from-rose-500 to-rose-700 text-white' },
+                  { q: 2, label: 'Hard',     style: 'bg-gradient-to-b from-orange-500 to-amber-600 text-white' },
+                  { q: 3, label: 'Okay',     style: 'bg-gradient-to-b from-amber-400 to-yellow-500 text-white' },
+                  { q: 4, label: 'Good',     style: 'bg-gradient-to-b from-indigo-500 to-violet-600 text-white' },
+                  { q: 5, label: 'Perfect',  style: 'bg-gradient-to-b from-emerald-500 to-cyan-600 text-white' }
                 ].map((item) => (
                   <button
                     key={item.q}
                     onClick={() => handleReviewSM2(item.q)}
-                    className={`flex flex-col items-center justify-center py-2.5 px-1 border rounded-xl text-[10px] font-bold transition-all shadow-sm cursor-pointer ${item.style}`}
+                    className={`flex flex-col items-center justify-center py-3 px-1 rounded-xl text-[10px] font-extrabold transition-all shadow-md active:scale-90 cursor-pointer hover:opacity-90 ${item.style}`}
                     title={item.label}
                   >
-                    <span className="text-base font-extrabold mb-0.5">{item.q}</span>
-                    <span className="scale-90 opacity-90">{item.label}</span>
+                    <span className="text-lg font-black mb-0.5">{item.q}</span>
+                    <span>{item.label}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center py-4 bg-slate-100/80 rounded-2xl text-slate-400 text-xs font-bold border border-slate-200/50 max-w-xl mx-auto flex items-center justify-center space-x-1.5 animate-pulse">
-            <HelpCircle className="w-4 h-4 text-slate-400" />
+          <div className="text-center py-4 bg-slate-100/50 dark:bg-slate-900/50 rounded-2xl text-slate-400 dark:text-slate-550 text-xs font-bold border border-slate-200/50 dark:border-slate-850/50 max-w-xl mx-auto flex items-center justify-center space-x-1.5 animate-pulse">
+            <HelpCircle className="w-4 h-4 text-slate-405" />
             <span>Please answer the question above to grade your memory</span>
           </div>
         )}
 
-        <div className="text-center text-xs font-semibold text-slate-400 max-w-xl mx-auto">
+        <div className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 max-w-xl mx-auto uppercase tracking-wider">
           Tip: Grade honestly! Spaced repetition brings forgotten cards back sooner.
         </div>
       </div>

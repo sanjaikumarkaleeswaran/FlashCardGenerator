@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, File, AlertCircle, CheckCircle, Loader, Trash2 } from 'lucide-react';
 import { flashcardService } from '../services/api';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
 
 const DocumentUpload = ({ onUploadSuccess, onUploadStart, onUploadReset }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -20,7 +22,7 @@ const DocumentUpload = ({ onUploadSuccess, onUploadStart, onUploadReset }) => {
     const validExtensions = ['pdf', 'docx', 'txt'];
     
     if (!validExtensions.includes(ext)) {
-      setErrorMessage('Unsupported file format. Please upload a PDF, DOCX, or TXT file.');
+      setErrorMessage('Unsupported format. Please upload a PDF, DOCX, or TXT file.');
       setStatus('error');
       return false;
     }
@@ -132,10 +134,10 @@ const DocumentUpload = ({ onUploadSuccess, onUploadStart, onUploadReset }) => {
           onDragLeave={handleDrag}
           onDrop={handleDrop}
           onClick={onButtonClick}
-          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all duration-200 min-h-[220px] ${
+          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all duration-300 min-h-[220px] ${
             dragActive 
-              ? 'border-indigo-600 bg-indigo-50/50' 
-              : 'border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-slate-50'
+              ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20' 
+              : 'border-slate-300 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-800 bg-slate-50/40 dark:bg-slate-950/10 hover:bg-slate-50 dark:hover:bg-slate-900/30'
           }`}
         >
           <input
@@ -145,33 +147,33 @@ const DocumentUpload = ({ onUploadSuccess, onUploadStart, onUploadReset }) => {
             accept=".pdf,.docx,.txt"
             onChange={handleChange}
           />
-          <UploadCloud className="w-12 h-12 text-slate-400 group-hover:text-indigo-500 mb-3" />
-          <p className="text-sm font-bold text-slate-700 text-center">
-            Drag and drop your study file here, or click to browse
+          <UploadCloud className="w-12 h-12 text-slate-400 dark:text-slate-650 mb-3" />
+          <p className="text-sm font-extrabold text-slate-700 dark:text-slate-300 text-center">
+            Drag & drop your study file here, or click to browse
           </p>
-          <p className="text-xs text-slate-400 font-medium mt-1">
+          <p className="text-xs text-slate-400 dark:text-slate-500 font-bold mt-1">
             Supports PDF, DOCX, or TXT up to 5MB
           </p>
         </div>
       )}
 
       {status === 'uploading' && (
-        <div className="border border-slate-200 rounded-2xl p-6 bg-white shadow-sm space-y-4">
+        <div className="border border-slate-200 dark:border-slate-800 rounded-2xl p-6 bg-white dark:bg-slate-900 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600 animate-pulse">
+              <div className="bg-indigo-50 dark:bg-indigo-950/40 p-2 rounded-xl text-indigo-650 dark:text-indigo-400">
                 <Loader className="w-5 h-5 animate-spin" />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Processing Document...</p>
-                <p className="text-xs text-slate-400 font-medium">Extracting study notes text</p>
+                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-250">Processing Document...</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold">Extracting content layers</p>
               </div>
             </div>
-            <span className="text-sm font-bold text-indigo-600">{progress}%</span>
+            <span className="text-sm font-extrabold text-indigo-650 dark:text-indigo-400">{progress}%</span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-2">
+          <div className="w-full bg-slate-100 dark:bg-slate-850 rounded-full h-1.5 overflow-hidden">
             <div 
-              className="bg-indigo-600 h-2 rounded-full transition-all duration-200" 
+              className="bg-indigo-600 h-full rounded-full transition-all duration-200" 
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -179,48 +181,48 @@ const DocumentUpload = ({ onUploadSuccess, onUploadStart, onUploadReset }) => {
       )}
 
       {status === 'success' && file && (
-        <div className="border border-emerald-100 rounded-2xl p-6 bg-emerald-50/30 shadow-sm space-y-4">
+        <div className="border border-emerald-100 dark:border-emerald-950/65 rounded-2xl p-5 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-sm space-y-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-emerald-100 p-2.5 rounded-xl text-emerald-700">
+              <div className="bg-emerald-100 dark:bg-emerald-950/40 p-2.5 rounded-xl text-emerald-700 dark:text-emerald-450">
                 <File className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-800 line-clamp-1">{file.name}</p>
-                <p className="text-xs text-slate-400 font-bold">{formatBytes(file.size)}</p>
+                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200 line-clamp-1">{file.name}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">{formatBytes(file.size)}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={resetUploader}
-              className="text-slate-400 hover:text-rose-600 p-1.5 rounded-xl hover:bg-rose-50 transition-colors"
+              className="text-slate-400 hover:text-rose-600 p-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex items-center space-x-2 text-xs font-bold text-emerald-700 bg-emerald-100/50 py-2 px-3 rounded-xl w-fit">
-            <CheckCircle className="w-4 h-4 flex-shrink-0" />
-            <span>Document text extracted successfully!</span>
+          <div>
+            <Badge variant="success">Document text extracted!</Badge>
           </div>
         </div>
       )}
 
       {status === 'error' && (
         <div className="space-y-4">
-          <div className="flex items-start space-x-3 bg-rose-50 border border-rose-100 text-rose-700 p-4 rounded-xl text-sm font-medium">
+          <div className="flex items-start space-x-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 text-rose-700 dark:text-rose-450 p-4 rounded-xl text-sm font-medium">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-bold">Extraction Error</p>
               <p className="text-xs leading-normal opacity-90">{errorMessage}</p>
             </div>
           </div>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            className="w-full h-11"
             onClick={resetUploader}
-            className="w-full text-center py-3 border border-slate-200 hover:border-slate-300 bg-white text-slate-600 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all"
           >
             Try Again
-          </button>
+          </Button>
         </div>
       )}
     </div>

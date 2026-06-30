@@ -1,0 +1,35 @@
+services:
+  # ─────────────────────────────────────────
+  # Backend: FastAPI + spaCy (Docker-based)
+  # ─────────────────────────────────────────
+  - type: web
+    name: smartflash-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: MONGO_URL
+        sync: false          # Set this manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false          # Set this manually in Render dashboard
+      - key: PORT
+        value: 8000
+    healthCheckPath: /
+
+  # ─────────────────────────────────────────
+  # Frontend: React/Vite (Static Site)
+  # ─────────────────────────────────────────
+  - type: web
+    name: smartflash-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    plan: free
+    envVars:
+      - key: VITE_API_URL
+        sync: false          # Set to your backend URL after backend deploys
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
