@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   BookOpen, 
@@ -10,7 +10,9 @@ import {
   Menu, 
   X,
   LogIn,
-  UserPlus
+  UserPlus,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { authService } from '../services/api';
 
@@ -19,6 +21,22 @@ const Navbar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const isAuthenticated = authService.isAuthenticated();
+
+  // Dark Mode State
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   const handleLogout = () => {
     authService.logout();
@@ -33,21 +51,21 @@ const Navbar = () => {
   const navLinkClass = (path) => {
     return `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
       isActive(path)
-        ? 'bg-indigo-50 text-indigo-600 shadow-sm'
-        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+        ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-sm'
+        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
     }`;
   };
 
   const mobileNavLinkClass = (path) => {
     return `flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 ${
       isActive(path)
-        ? 'bg-indigo-50 text-indigo-600'
-        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+        ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-450'
+        : 'text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
     }`;
   };
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-slate-200/60 shadow-sm">
+    <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/60 dark:border-slate-800/80 shadow-sm transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and Brand */}
@@ -63,57 +81,77 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Navigation Links */}
-          {isAuthenticated ? (
-            <div className="hidden md:flex items-center space-x-2">
-              <Link to="/dashboard" className={navLinkClass('/dashboard')}>
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Dashboard</span>
-              </Link>
-              <Link to="/create" className={navLinkClass('/create')}>
-                <PlusCircle className="w-4 h-4" />
-                <span>Create</span>
-              </Link>
-              <Link to="/review" className={navLinkClass('/review')}>
-                <Play className="w-4 h-4" />
-                <span>Review</span>
-              </Link>
-              <Link to="/history" className={navLinkClass('/history')}>
-                <HistoryIcon className="w-4 h-4" />
-                <span>History</span>
-              </Link>
-              <div className="h-4 w-px bg-slate-200 mx-2" />
+          <div className="hidden md:flex items-center space-x-2">
+            {isAuthenticated && (
+              <>
+                <Link to="/dashboard" className={navLinkClass('/dashboard')}>
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </Link>
+                <Link to="/create" className={navLinkClass('/create')}>
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Create</span>
+                </Link>
+                <Link to="/review" className={navLinkClass('/review')}>
+                  <Play className="w-4 h-4" />
+                  <span>Review</span>
+                </Link>
+                <Link to="/history" className={navLinkClass('/history')}>
+                  <HistoryIcon className="w-4 h-4" />
+                  <span>History</span>
+                </Link>
+                <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
+              </>
+            )}
+
+            {/* Dark Mode Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer mr-2"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun className="w-4.5 h-4.5 text-amber-500" /> : <Moon className="w-4.5 h-4.5" />}
+            </button>
+
+            {isAuthenticated ? (
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-all duration-200"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 dark:text-rose-455 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all duration-200"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Log Out</span>
               </button>
-            </div>
-          ) : (
-            <div className="hidden md:flex items-center space-x-4">
-              <Link
-                to="/login"
-                className="flex items-center space-x-1.5 text-slate-600 hover:text-slate-900 text-sm font-medium px-3 py-2"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Log In</span>
-              </Link>
-              <Link
-                to="/register"
-                className="flex items-center space-x-1.5 bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-medium px-4 py-2 rounded-xl shadow-sm transition-all duration-200"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Sign Up</span>
-              </Link>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link
+                  to="/login"
+                  className="flex items-center space-x-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-sm font-medium px-3 py-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Log In</span>
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-xl shadow-sm transition-all duration-200"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Sign Up</span>
+                </Link>
+              </div>
+            )}
+          </div>
 
-          {/* Mobile menu button */}
-          <div className="flex items-center md:hidden">
+          {/* Mobile menu button & Mobile Dark Mode selector */}
+          <div className="flex items-center space-x-2 md:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
+            </button>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
+              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none"
             >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -123,7 +161,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden animate-fade-in bg-white border-b border-slate-200/80 px-4 pt-2 pb-4 space-y-1 shadow-lg">
+        <div className="md:hidden animate-fade-in bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 px-4 pt-2 pb-4 space-y-1 shadow-lg">
           {isAuthenticated ? (
             <>
               <Link
@@ -158,10 +196,10 @@ const Navbar = () => {
                 <HistoryIcon className="w-5 h-5 text-violet-500" />
                 <span>History</span>
               </Link>
-              <div className="border-t border-slate-100 my-2" />
+              <div className="border-t border-slate-100 dark:border-slate-800 my-2" />
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium text-rose-600 hover:bg-rose-50 transition-all duration-200"
+                className="flex w-full items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all duration-200"
               >
                 <LogOut className="w-5 h-5 text-rose-500" />
                 <span>Log Out</span>
@@ -172,7 +210,7 @@ const Navbar = () => {
               <Link
                 to="/login"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+                className="flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium"
               >
                 <LogIn className="w-5 h-5 text-slate-500" />
                 <span>Log In</span>

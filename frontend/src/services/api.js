@@ -107,6 +107,23 @@ export const flashcardService = {
     const response = await api.delete(`/api/flashcards/set/${setId}/card/${cardId}`);
     return response.data;
   },
+
+  async updateReviewSM2(cardId, quality) {
+    const response = await api.post('/api/review/sm2-update', { cardId, quality });
+    return response.data;
+  },
+
+  async exportSetCsv(setId) {
+    const response = await api.get(`/api/export/flashcards?setId=${setId}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  async listSubjects() {
+    const response = await api.get('/api/subjects');
+    return response.data;
+  },
 };
 
 export default api;

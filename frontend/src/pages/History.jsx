@@ -16,10 +16,14 @@ import {
   X,
   Plus,
   Save,
-  HelpCircle
+  HelpCircle,
+  Download,
+  BookOpen,
+  Folder
 } from 'lucide-react';
 import { flashcardService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const History = () => {
   const navigate = useNavigate();
@@ -36,7 +40,7 @@ const History = () => {
   // Set Rename / Delete CRUD state
   const [editingSetId, setEditingSetId] = useState(null);
   const [editTitleValue, setEditTitleValue] = useState('');
-  const [deletingSetId, setDeletingSetId] = useState(null);
+  const [setToDelete, setSetToDelete] = useState(null);
 
   // Card CRUD state
   const [editingCardId, setEditingCardId] = useState(null);
@@ -47,7 +51,7 @@ const History = () => {
     options: ['', '', '', ''],
     difficulty: 'medium'
   });
-  const [deletingCardId, setDeletingCardId] = useState(null);
+  const [cardToDelete, setCardToDelete] = useState(null);
 
   // New Card addition state
   const [addingToSetId, setAddingToSetId] = useState(null);
@@ -119,14 +123,29 @@ const History = () => {
     }
   };
 
-  // 2. Delete Set
   const confirmDeleteSet = async (setId) => {
     try {
       await flashcardService.deleteSet(setId);
       setSets((prev) => prev.filter((s) => s.id !== setId));
-      setDeletingSetId(null);
+      setSetToDelete(null);
     } catch (err) {
       setError('Failed to delete study set. Please try again.');
+    }
+  };
+
+  const handleExportCSV = async (setId, title) => {
+    try {
+      const blob = await flashcardService.exportSetCsv(setId);
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      const safeFilename = title.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      link.setAttribute('download', `${safeFilename}_flashcards.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (err) {
+      setError('Failed to export study set CSV. Please try again.');
     }
   };
 
@@ -274,7 +293,7 @@ const History = () => {
           return s;
         })
       );
-      setDeletingCardId(null);
+      setCardToDelete(null);
     } catch (err) {
       setError('Failed to delete card. Please try again.');
     }
@@ -360,145 +379,154 @@ const History = () => {
           )}
         </div>
       ) : (
-        <div className="space-y-6">
-          {filteredSets.map((set) => {
-            const isExpanded = !!expandedSetIds[set.id];
-            const sourceLabel = set.source_type?.toUpperCase() || 'TEXT';
-            const typeLabel = set.flashcard_type === 'mcq' ? 'MCQ' : set.flashcard_type === 'fillup' ? 'FILLUP' : 'QA';
-            
-            return (
-              <div 
-                key={set.id}
-                className="bg-white rounded-3xl border border-slate-200/80 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
-              >
-                {/* Delete Confirmation Banner */}
-                {deletingSetId === set.id && (
-                  <div className="bg-rose-50 border-b border-rose-100 p-4 px-6 sm:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-rose-800 text-sm font-medium">
-                    <span className="flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600" />
-                      <span>Are you sure you want to delete <strong>"{set.title}"</strong>? This deletes the set and all of its cards.</span>
-                    </span>
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => confirmDeleteSet(set.id)}
-                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer"
-                      >
-                        Confirm Delete
-                      </button>
-                      <button 
-                        onClick={() => setDeletingSetId(null)}
-                        className="bg-white border border-rose-200 hover:bg-rose-100/50 text-rose-700 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
+        <div className="space-y-10">
+          {(() => {
+            const setsBySubject = filteredSets.reduce((acc, s) => {
+              const subj = s.subject || 'General';
+              if (!acc[subj]) acc[subj] = [];
+              acc[subj].push(s);
+              return acc;
+            }, {});
 
-                {/* Header Row */}
-                <div className="p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                  <div className="space-y-2.5 flex-1 w-full">
-                    <div className="flex items-center gap-3 w-full">
-                      
-                      {/* Set Title Edit Mode Toggle */}
-                      {editingSetId === set.id ? (
-                        <div className="flex items-center gap-2 flex-1 max-w-lg">
-                          <input 
-                            type="text"
-                            value={editTitleValue}
-                            onChange={(e) => setEditTitleValue(e.target.value)}
-                            className="block w-full px-3 py-1.5 border border-indigo-300 rounded-xl text-slate-800 text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            placeholder="Set Title"
-                          />
-                          <button 
-                            onClick={() => saveRenameSet(set.id)}
-                            className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-all cursor-pointer"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={cancelRenameSet}
-                            className="p-2 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-xl font-extrabold text-slate-850 leading-tight">
-                            {set.title}
-                          </h3>
-                          <button 
-                            onClick={() => startRenameSet(set)}
-                            className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
-                            title="Rename study set"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="text-[9px] px-2 py-0.5 bg-slate-100 text-slate-550 font-bold rounded">
-                            {sourceLabel}
-                          </span>
-                          <span className="text-[9px] px-2 py-0.5 bg-indigo-50 text-indigo-700 font-bold rounded">
-                            {typeLabel}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-semibold text-slate-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4 text-indigo-500" />
-                        <span>
-                          {new Date(set.created_at).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Layers className="w-4 h-4 text-violet-500" />
-                        <span>{set.card_count} Cards</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <button
-                      onClick={() => toggleExpandSet(set.id)}
-                      className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 border border-slate-250 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm cursor-pointer"
-                    >
-                      <span>{isExpanded ? 'Hide Cards' : 'View Cards'}</span>
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    
-                    <button
-                      onClick={() => navigate(`/review?setId=${set.id}`)}
-                      className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md cursor-pointer"
-                    >
-                      <Play className="w-4 h-4 fill-white" />
-                      <span>Study</span>
-                    </button>
-
-                    <button 
-                      onClick={() => setDeletingSetId(set.id)}
-                      className="p-2.5 border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all cursor-pointer"
-                      title="Delete study set"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+            return Object.keys(setsBySubject).sort().map((subj) => (
+              <div key={subj} className="space-y-4">
+                <div className="flex items-center gap-2 px-1 border-b border-slate-100 pb-2">
+                  <BookOpen className="w-4 h-4 text-indigo-500" />
+                  <h2 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">{subj}</h2>
+                  <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full font-bold">
+                    {setsBySubject[subj].length} {setsBySubject[subj].length === 1 ? 'set' : 'sets'}
+                  </span>
                 </div>
 
-                {/* Expanded Card Details Accordion */}
-                {isExpanded && (
-                  <div className="border-t border-slate-100 bg-slate-50/50 p-6 sm:p-8 space-y-6">
-                    {/* Notes Detail */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/50 space-y-2">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <FileText className="w-4 h-4 text-indigo-500" />
-                        <span>Original Notes Source</span>
-                      </h4>
+                <div className="space-y-6">
+                  {setsBySubject[subj].map((set) => {
+                    const isExpanded = !!expandedSetIds[set.id];
+                    const sourceLabel = set.source_type?.toUpperCase() || 'TEXT';
+                    const typeLabel = set.flashcard_type === 'mcq' ? 'MCQ' : set.flashcard_type === 'fillup' ? 'FILLUP' : 'QA';
+                    
+                    return (
+                      <div 
+                        key={set.id}
+                        className="bg-white rounded-3xl border border-slate-200/80 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
+                      >
+                        {/* Header Row */}
+                        <div className="p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                          <div className="space-y-2.5 flex-1 w-full">
+                            <div className="flex items-center gap-3 w-full">
+                              
+                              {/* Set Title Edit Mode Toggle */}
+                              {editingSetId === set.id ? (
+                                <div className="flex items-center gap-2 flex-1 max-w-lg">
+                                  <input 
+                                    type="text"
+                                    value={editTitleValue}
+                                    onChange={(e) => setEditTitleValue(e.target.value)}
+                                    className="block w-full px-3 py-1.5 border border-indigo-300 rounded-xl text-slate-800 text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="Set Title"
+                                  />
+                                  <button 
+                                    onClick={() => saveRenameSet(set.id)}
+                                    className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-all cursor-pointer"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={cancelRenameSet}
+                                    className="p-2 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="text-xl font-extrabold text-slate-850 leading-tight">
+                                    {set.title}
+                                  </h3>
+                                  <button 
+                                    onClick={() => startRenameSet(set)}
+                                    className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
+                                    title="Rename study set"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <span className="text-[9px] px-2 py-0.5 bg-slate-100 text-slate-550 font-bold rounded">
+                                    {sourceLabel}
+                                  </span>
+                                  <span className="text-[9px] px-2 py-0.5 bg-indigo-50 text-indigo-700 font-bold rounded">
+                                    {typeLabel}
+                                  </span>
+                                  {set.folder_name && (
+                                    <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 bg-pink-50 text-pink-705 font-bold rounded border border-pink-100/50">
+                                      <Folder className="w-2.5 h-2.5" />
+                                      <span>{set.folder_name}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-semibold text-slate-400">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4 text-indigo-500" />
+                                <span>
+                                  {new Date(set.created_at).toLocaleDateString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Layers className="w-4 h-4 text-violet-500" />
+                                <span>{set.card_count} Cards</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <button
+                              onClick={() => toggleExpandSet(set.id)}
+                              className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 border border-slate-250 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm cursor-pointer"
+                            >
+                              <span>{isExpanded ? 'Hide Cards' : 'View Cards'}</span>
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                            
+                            <button
+                              onClick={() => navigate(`/review?setId=${set.id}`)}
+                              className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md cursor-pointer"
+                            >
+                              <Play className="w-4 h-4 fill-white" />
+                              <span>Study</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleExportCSV(set.id, set.title)}
+                              className="p-2.5 border border-slate-250 hover:bg-indigo-50 text-slate-400 hover:text-indigo-650 rounded-xl transition-all cursor-pointer"
+                              title="Export CSV (Anki compatible)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            
+                            <button 
+                              onClick={() => setSetToDelete(set)}
+                              className="p-2.5 border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all cursor-pointer"
+                              title="Delete study set"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Expanded Card Details Accordion */}
+                        {isExpanded && (
+                          <div className="border-t border-slate-100 bg-slate-50/50 p-6 sm:p-8 space-y-6">
+                            {/* Notes Detail */}
+                            <div className="bg-white p-5 rounded-2xl border border-slate-200/50 space-y-2">
+                              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <FileText className="w-4 h-4 text-indigo-500" />
+                                <span>Original Notes Source</span>
+                              </h4>
                       <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-medium">
                         {set.notes}
                       </p>
@@ -639,26 +667,7 @@ const History = () => {
                                 isEditingCard ? 'border-indigo-300 ring-1 ring-indigo-50/50' : 'border-slate-200/60'
                               }`}
                             >
-                              {/* Inline Card Delete Confirmation */}
-                              {isDeletingCard ? (
-                                <div className="space-y-3 p-1">
-                                  <p className="text-xs font-bold text-rose-700 text-center">Delete this card?</p>
-                                  <div className="flex gap-2 justify-center">
-                                    <button 
-                                      onClick={() => confirmDeleteCard(set.id, card.id)}
-                                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer"
-                                    >
-                                      Delete
-                                    </button>
-                                    <button 
-                                      onClick={() => setDeletingCardId(null)}
-                                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : isEditingCard ? (
+                              {isEditingCard ? (
                                 /* Card Edit Inputs Form */
                                 <div className="space-y-3">
                                   <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
@@ -749,7 +758,7 @@ const History = () => {
                                         <Pencil className="w-3.5 h-3.5" />
                                       </button>
                                       <button 
-                                        onClick={() => setDeletingCardId(card.id)}
+                                        onClick={() => setCardToDelete({ setId: set.id, cardId: card.id, question: card.question })}
                                         className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-50 transition-all cursor-pointer"
                                         title="Delete card"
                                       >
@@ -810,7 +819,30 @@ const History = () => {
             );
           })}
         </div>
+      </div>
+    ));
+  })()}
+        </div>
       )}
+
+      {/* Reusable Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={!!setToDelete}
+        title="Delete Study Set"
+        message={`Are you sure you want to delete "${setToDelete?.title}"? All cards in this set will be permanently removed.`}
+        confirmText="Delete Set"
+        onConfirm={() => confirmDeleteSet(setToDelete.id)}
+        onCancel={() => setSetToDelete(null)}
+      />
+
+      <ConfirmationModal
+        isOpen={!!cardToDelete}
+        title="Delete Flashcard"
+        message={`Are you sure you want to delete this card? "${cardToDelete?.question ? (cardToDelete.question.length > 60 ? cardToDelete.question.slice(0, 60) + '...' : cardToDelete.question) : ''}"`}
+        confirmText="Delete Card"
+        onConfirm={() => confirmDeleteCard(cardToDelete.setId, cardToDelete.cardId)}
+        onCancel={() => setCardToDelete(null)}
+      />
     </div>
   );
 };

@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Check, X, Award, RotateCcw, ArrowRight, LayoutDashboard, HelpCircle } from 'lucide-react';
+import { 
+  Check, 
+  X, 
+  Award, 
+  RotateCcw, 
+  ArrowRight, 
+  LayoutDashboard, 
+  HelpCircle, 
+  Volume2,
+  Sliders,
+  Sparkles
+} from 'lucide-react';
 import { flashcardService } from '../services/api';
 import Flashcard from '../components/Flashcard';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -32,6 +43,10 @@ const Review = () => {
   const [sessionKnown, setSessionKnown] = useState(0);
   const [sessionNotKnown, setSessionNotKnown] = useState(0);
 
+  // Advanced SM-2 grading toggle and speed
+  const [showAdvancedGrading, setShowAdvancedGrading] = useState(false);
+  const [speakRate, setSpeakRate] = useState(1.0);
+
   useEffect(() => {
     const fetchQueue = async () => {
       try {
@@ -56,20 +71,27 @@ const Review = () => {
   };
 
   const handleReviewAction = async (status) => {
+    // Map Known -> 4, Not Known -> 1 quality
+    const quality = status === 'known' ? 4 : 1;
+    await handleReviewSM2(quality);
+  };
+
+  const handleReviewSM2 = async (quality) => {
     if (currentIndex >= queue.length) return;
     
     const currentCard = queue[currentIndex];
     
-    if (status === 'known') {
+    // Quality >= 3 maps to known, < 3 to practice
+    if (quality >= 3) {
       setSessionKnown((prev) => prev + 1);
     } else {
       setSessionNotKnown((prev) => prev + 1);
     }
 
     try {
-      await flashcardService.updateReviewStatus(currentCard.id, status);
+      await flashcardService.updateReviewSM2(currentCard.id, quality);
     } catch (err) {
-      console.error('Failed to update review status:', err);
+      console.error('Failed to update SM-2 review status:', err);
     }
 
     // Reset card-specific interactive states
@@ -82,6 +104,19 @@ const Review = () => {
     setTimeout(() => {
       setCurrentIndex((prev) => prev + 1);
     }, 200);
+  };
+
+  const handleSpeak = (text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = speakRate;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const cycleSpeakRate = () => {
+    setSpeakRate((prev) => (prev === 1.0 ? 1.2 : prev === 1.2 ? 0.8 : 1.0));
   };
 
   if (isLoading) {
@@ -128,11 +163,11 @@ const Review = () => {
           <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-sm font-semibold">
             <div className="text-center">
               <span className="block text-2xl font-extrabold text-emerald-600">{sessionKnown}</span>
-              <span className="text-xs text-slate-400">Known</span>
+              <span className="text-xs text-slate-400">Mastered (Q &gt;= 3)</span>
             </div>
             <div className="text-center">
               <span className="block text-2xl font-extrabold text-amber-600">{sessionNotKnown}</span>
-              <span className="text-xs text-slate-400">Practice</span>
+              <span className="text-xs text-slate-400">Practice (Q &lt; 3)</span>
             </div>
           </div>
         )}
@@ -172,8 +207,9 @@ const Review = () => {
           </h2>
         </div>
         <div className="text-right">
-          <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 rounded-full font-bold">
-            Spaced Repetition Active
+          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            <span>Anki SM-2 Spaced Repetition</span>
           </span>
         </div>
       </div>
@@ -185,9 +221,27 @@ const Review = () => {
             <span className="text-xs font-bold text-indigo-500 uppercase tracking-wide truncate max-w-[220px]">
               Set: {currentCard.setTitle}
             </span>
-            <span className="text-[10px] px-2 py-0.5 font-bold rounded-full border bg-purple-50 border-purple-200 text-purple-700 uppercase">
-              Multiple Choice
-            </span>
+            <div className="flex items-center gap-2">
+              {/* TTS Controls */}
+              <div className="flex items-center bg-slate-50 border border-slate-200/60 rounded-xl p-0.5">
+                <button 
+                  onClick={() => handleSpeak(currentCard.question)}
+                  className="p-1 hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
+                  title="Speak Question"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={cycleSpeakRate}
+                  className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  {speakRate}x
+                </button>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 font-bold rounded-full border bg-purple-50 border-purple-200 text-purple-700 uppercase">
+                Multiple Choice
+              </span>
+            </div>
           </div>
 
           <h3 className="text-slate-800 text-lg sm:text-xl font-bold leading-relaxed">
@@ -249,12 +303,30 @@ const Review = () => {
             <span className="text-xs font-bold text-indigo-500 uppercase tracking-wide truncate max-w-[220px]">
               Set: {currentCard.setTitle}
             </span>
-            <span className="text-[10px] px-2 py-0.5 font-bold rounded-full border bg-amber-50 border-amber-200 text-amber-700 uppercase">
-              Fill in the Blank
-            </span>
+            <div className="flex items-center gap-2">
+              {/* TTS Controls */}
+              <div className="flex items-center bg-slate-50 border border-slate-200/60 rounded-xl p-0.5">
+                <button 
+                  onClick={() => handleSpeak(currentCard.question.replace("______", currentCard.answer))}
+                  className="p-1 hover:bg-slate-200/60 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
+                  title="Speak Statement"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={cycleSpeakRate}
+                  className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  {speakRate}x
+                </button>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 font-bold rounded-full border bg-amber-50 border-amber-200 text-amber-700 uppercase">
+                Fill in the Blank
+              </span>
+            </div>
           </div>
 
-          <h3 className="text-slate-800 text-lg sm:text-xl font-bold leading-relaxed text-center py-6 leading-relaxed">
+          <h3 className="text-slate-800 text-lg sm:text-xl font-bold leading-relaxed text-center py-6">
             {currentCard.question}
           </h3>
 
@@ -323,32 +395,72 @@ const Review = () => {
         />
       )}
 
-      {/* Review Controls (conditionally pre-highlighted based on interactive answers) */}
+      {/* Review Controls (SM-2 Grader panel) */}
       <div className="space-y-4">
         {(cardType === 'qa' || hasChecked) ? (
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 max-w-xl mx-auto animate-fade-in">
-            <button
-              onClick={() => handleReviewAction('not_known')}
-              className={`w-full sm:flex-1 inline-flex items-center justify-center space-x-2 border py-4 rounded-2xl transition-all shadow-sm font-bold text-sm cursor-pointer ${
-                (cardType !== 'qa' && !isCorrect)
-                  ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700 shadow-md ring-2 ring-rose-200'
-                  : 'bg-rose-50 border-rose-200 hover:bg-rose-100/50 text-rose-750'
-              }`}
-            >
-              <X className="w-4 h-4" />
-              <span>Not Known (+2 Priority)</span>
-            </button>
-            <button
-              onClick={() => handleReviewAction('known')}
-              className={`w-full sm:flex-1 inline-flex items-center justify-center space-x-2 border py-4 rounded-2xl transition-all shadow-sm font-bold text-sm cursor-pointer ${
-                (cardType !== 'qa' && isCorrect)
-                  ? 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700 shadow-md ring-2 ring-emerald-200'
-                  : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100/50 text-emerald-755'
-              }`}
-            >
-              <Check className="w-4 h-4" />
-              <span>Known (-1 Priority)</span>
-            </button>
+          <div className="space-y-4 max-w-xl mx-auto animate-fade-in">
+            
+            {/* Toggle Advanced Slider option */}
+            <div className="flex justify-between items-center px-1">
+              <span className="text-xs font-bold text-slate-500">Grade your recall quality:</span>
+              <button 
+                onClick={() => setShowAdvancedGrading(!showAdvancedGrading)}
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+              >
+                <Sliders className="w-3 h-3" />
+                <span>{showAdvancedGrading ? "Hide 0-5 Grid" : "Show Anki 0-5 Grid"}</span>
+              </button>
+            </div>
+
+            {/* Standard Review Controls (Known / Practice) */}
+            {!showAdvancedGrading ? (
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => handleReviewAction('not_known')}
+                  className={`w-full sm:flex-1 inline-flex items-center justify-center space-x-2 border py-4 rounded-2xl transition-all shadow-sm font-bold text-sm cursor-pointer ${
+                    (cardType !== 'qa' && !isCorrect)
+                      ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700 shadow-md ring-2 ring-rose-200'
+                      : 'bg-rose-50 border-rose-200 hover:bg-rose-100/50 text-rose-750'
+                  }`}
+                >
+                  <X className="w-4 h-4" />
+                  <span>Not Known (Practice)</span>
+                </button>
+                <button
+                  onClick={() => handleReviewAction('known')}
+                  className={`w-full sm:flex-1 inline-flex items-center justify-center space-x-2 border py-4 rounded-2xl transition-all shadow-sm font-bold text-sm cursor-pointer ${
+                    (cardType !== 'qa' && isCorrect)
+                      ? 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700 shadow-md ring-2 ring-emerald-200'
+                      : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100/50 text-emerald-755'
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Known (Keep Schedule)</span>
+                </button>
+              </div>
+            ) : (
+              /* Anki 0-5 Quality Buttons Grid */
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-250/50 shadow-inner">
+                {[
+                  { q: 0, label: "Blackout", style: "bg-slate-900 border-slate-900 text-white hover:bg-slate-800" },
+                  { q: 1, label: "Incorrect", style: "bg-rose-600 border-rose-600 text-white hover:bg-rose-750" },
+                  { q: 2, label: "Familiar", style: "bg-orange-500 border-orange-500 text-white hover:bg-orange-600" },
+                  { q: 3, label: "Difficult", style: "bg-amber-500 border-amber-500 text-white hover:bg-amber-600" },
+                  { q: 4, label: "Good", style: "bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700" },
+                  { q: 5, label: "Perfect", style: "bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700" }
+                ].map((item) => (
+                  <button
+                    key={item.q}
+                    onClick={() => handleReviewSM2(item.q)}
+                    className={`flex flex-col items-center justify-center py-2.5 px-1 border rounded-xl text-[10px] font-bold transition-all shadow-sm cursor-pointer ${item.style}`}
+                    title={item.label}
+                  >
+                    <span className="text-base font-extrabold mb-0.5">{item.q}</span>
+                    <span className="scale-90 opacity-90">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-4 bg-slate-100/80 rounded-2xl text-slate-400 text-xs font-bold border border-slate-200/50 max-w-xl mx-auto flex items-center justify-center space-x-1.5 animate-pulse">

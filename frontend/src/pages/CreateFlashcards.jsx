@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Play, AlertCircle, FileText, Check, Settings, Clipboard, Upload } from 'lucide-react';
+import { Sparkles, Play, AlertCircle, FileText, Check, Settings, Clipboard, Upload, Folder, BookOpen, AlertTriangle } from 'lucide-react';
 import { flashcardService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import DocumentUpload from './DocumentUpload';
@@ -17,6 +17,12 @@ const CreateFlashcards = () => {
   // Settings
   const [cardType, setCardType] = useState('qa'); // 'qa' | 'fillup' | 'mcq'
   const [cardCount, setCardCount] = useState(10); // 5 | 10 | 20 | 30 | 50
+  const [subject, setSubject] = useState('General');
+  const [folderName, setFolderName] = useState('');
+  const [ignoreWords, setIgnoreWords] = useState('');
+
+  // Existing subjects for suggestions
+  const [subjectSuggestions, setSubjectSuggestions] = useState([]);
   
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +30,18 @@ const CreateFlashcards = () => {
 
   // Dynamic loading messages
   const [loadingMsg, setLoadingMsg] = useState('Analyzing text content...');
+
+  useEffect(() => {
+    const loadSubjects = async () => {
+      try {
+        const list = await flashcardService.listSubjects();
+        setSubjectSuggestions(list || []);
+      } catch (err) {
+        console.error("Failed to load subjects:", err);
+      }
+    };
+    loadSubjects();
+  }, []);
 
   const handleUploadSuccess = (uploadedId, name, preview) => {
     setDocId(uploadedId);
@@ -73,12 +91,21 @@ const CreateFlashcards = () => {
     
     timers.push(setTimeout(() => setLoadingMsg('Indexing and saving flashcard set into database...'), 4800));
 
+    // Parse ignore words
+    const ignoreList = ignoreWords
+      .split(',')
+      .map(w => w.trim())
+      .filter(w => w.length > 0);
+
     try {
       const payload = {
         notes: inputMethod === 'text' ? notes : undefined,
         source: inputMethod === 'document' ? docId : undefined,
         count: cardCount,
-        type: cardType
+        type: cardType,
+        subject: subject.trim() || 'General',
+        folder_name: folderName.trim() || undefined,
+        ignore_words: ignoreList.length > 0 ? ignoreList : undefined
       };
 
       const data = await flashcardService.generate(payload);
@@ -148,6 +175,16 @@ const CreateFlashcards = () => {
                 <span className="text-[10px] px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold uppercase rounded-md">
                   Cards: {generatedSet.card_count}
                 </span>
+                {generatedSet.subject && (
+                  <span className="text-[10px] px-2.5 py-1 bg-purple-50 text-purple-700 font-bold uppercase rounded-md">
+                    Subject: {generatedSet.subject}
+                  </span>
+                )}
+                {generatedSet.folder_name && (
+                  <span className="text-[10px] px-2.5 py-1 bg-pink-50 text-pink-700 font-bold uppercase rounded-md">
+                    Folder: {generatedSet.folder_name}
+                  </span>
+                )}
               </div>
             </div>
             <button
@@ -181,7 +218,7 @@ const CreateFlashcards = () => {
                 <div className="space-y-3">
                   <div>
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Question</h4>
-                    <p className="text-slate-800 font-bold text-base mt-0.5 leading-relaxed">{card.question}</p>
+                    <p className="text-slate-880 font-bold text-base mt-0.5 leading-relaxed">{card.question}</p>
                   </div>
                   
                   {/* MCQ Options Rendering */}
@@ -318,6 +355,61 @@ const CreateFlashcards = () => {
                 <div className="flex items-center space-x-2 text-slate-700 font-bold text-base pb-3 border-b border-slate-100">
                   <Settings className="w-4.5 h-4.5 text-indigo-500 animate-spin-slow" />
                   <span>Generation Settings</span>
+                </div>
+
+                {/* Subject Organizer */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Subject / Category</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="e.g. Biology, History"
+                    list="subjects-list"
+                    className="block w-full p-3 border border-slate-200 rounded-xl text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <datalist id="subjects-list">
+                    {subjectSuggestions.map((s, index) => (
+                      <option key={index} value={s} />
+                    ))}
+                  </datalist>
+                </div>
+
+                {/* Folder Organizer */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <Folder className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Folder Name (Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={folderName}
+                    onChange={(e) => setFolderName(e.target.value)}
+                    placeholder="e.g. Midterms, Quiz 1"
+                    className="block w-full p-3 border border-slate-200 rounded-xl text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Ignore Words (Cloze filtering) */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Ignored Words (Cloze Blacklist)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={ignoreWords}
+                    onChange={(e) => setIgnoreWords(e.target.value)}
+                    placeholder="e.g. study, plant, cell (comma separated)"
+                    className="block w-full p-3 border border-slate-200 rounded-xl text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="block text-[9px] text-slate-400 font-medium leading-tight">
+                    Masking parser will bypass these words during fill-up questions.
+                  </span>
                 </div>
 
                 {/* Card Type Selector */}

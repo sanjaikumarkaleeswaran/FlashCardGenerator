@@ -210,17 +210,41 @@ def try_time_question(sent, doc_entities) -> Tuple[str, str]:
                     return question, time_phrase_clean
     return "", ""
 
-def try_fallback_question(sent) -> Tuple[str, str]:
-    """Rule 5: Fallback Keyword Masking / Cloze Deletion"""
+def try_fallback_question(sent, ignore_words: List[str] = None) -> Tuple[str, str]:
+    """Rule 5: Fallback Keyword Masking / Cloze Deletion with Stopword Filtering"""
+    ignore_set = {w.lower().strip() for w in ignore_words} if ignore_words else set()
+    extra_stopwords = {
+        "however", "therefore", "although", "furthermore", "besides", "instead", 
+        "meanwhile", "nevertheless", "nonetheless", "non", "yes", "no", "not", 
+        "any", "some", "every", "other", "another", "such", "this", "that", "these",
+        "those", "which", "whose", "what", "where", "when", "why", "how", "whom"
+    }
+
     target_token = None
     for token in sent:
-        if token.dep_ == "dobj" and token.pos_ in ["NOUN", "PROPN"]:
+        t_low = token.text.strip().lower()
+        if (
+            token.dep_ == "dobj" and 
+            token.pos_ in ["NOUN", "PROPN"] and 
+            not token.is_stop and 
+            len(t_low) > 2 and
+            t_low not in ignore_set and
+            t_low not in extra_stopwords
+        ):
             target_token = token
             break
             
     if not target_token:
         for token in sent:
-            if token.pos_ in ["NOUN", "PROPN"] and token.dep_ not in ["nsubj", "nsubjpass", "compound"]:
+            t_low = token.text.strip().lower()
+            if (
+                token.pos_ in ["NOUN", "PROPN"] and 
+                token.dep_ not in ["nsubj", "nsubjpass", "compound"] and
+                not token.is_stop and
+                len(t_low) > 2 and
+                t_low not in ignore_set and
+                t_low not in extra_stopwords
+            ):
                 target_token = token
                 break
                 
@@ -260,10 +284,8 @@ def generate_qa(notes: str) -> List[Dict]:
         if not q:
             q, a = try_time_question(sent, doc_entities)
         if not q:
-            # Fallback cloze structure formulated as a definition-style question
             q, a = try_fallback_question(sent)
             if q:
-                # Prepend standard prompt for standard QA list format
                 q = f"Complete the statement: {q}"
 
         if q and a:
@@ -285,14 +307,21 @@ def generate_qa(notes: str) -> List[Dict]:
             unique.append(c)
     return unique
 
-def generate_fillups(notes: str) -> List[Dict]:
-    """Generate Fill-in-the-blank cards (e.g. 'Photosynthesis occurs in ______.')"""
+def generate_fillups(notes: str, ignore_words: List[str] = None) -> List[Dict]:
+    """Generate Cloze Fill-in-the-blank cards with ignore words protection."""
     flashcards = []
     engine = get_nlp()
     if engine is None:
         return []
         
     doc = engine(notes)
+    ignore_set = {w.lower().strip() for w in ignore_words} if ignore_words else set()
+    extra_stopwords = {
+        "however", "therefore", "although", "furthermore", "besides", "instead", 
+        "meanwhile", "nevertheless", "nonetheless", "non", "yes", "no", "not", 
+        "any", "some", "every", "other", "another", "such", "this", "that", "these",
+        "those", "which", "whose", "what", "where", "when", "why", "how", "whom"
+    }
     
     for sent in doc.sents:
         if len([t for t in sent if not t.is_punct]) < 4:
@@ -301,14 +330,30 @@ def generate_fillups(notes: str) -> List[Dict]:
         difficulty = get_sentence_difficulty(sent)
         target = None
         
-        # Locate candidate noun to mask
+        # Locate candidate noun to mask, filtering stopwords/ignored words
         for token in sent:
-            if token.dep_ in ["dobj", "pobj"] and token.pos_ in ["NOUN", "PROPN"] and not token.is_stop:
+            t_low = token.text.strip().lower()
+            if (
+                token.dep_ in ["dobj", "pobj"] and 
+                token.pos_ in ["NOUN", "PROPN"] and 
+                not token.is_stop and
+                len(t_low) > 2 and
+                t_low not in ignore_set and
+                t_low not in extra_stopwords
+            ):
                 target = token
                 break
         if not target:
             for token in sent:
-                if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop and token.dep_ not in ["compound"]:
+                t_low = token.text.strip().lower()
+                if (
+                    token.pos_ in ["NOUN", "PROPN"] and 
+                    not token.is_stop and 
+                    token.dep_ not in ["compound"] and
+                    len(t_low) > 2 and
+                    t_low not in ignore_set and
+                    t_low not in extra_stopwords
+                ):
                     target = token
                     break
                     
@@ -339,7 +384,7 @@ def generate_fillups(notes: str) -> List[Dict]:
     return unique
 
 def generate_mcq(notes: str) -> List[Dict]:
-    """Generate Multiple Choice Questions (MCQ) with 4 options."""
+    """Generate Multiple Choice Questions (MCQ) with 4 options utilizing Noun Phrases as Distractors."""
     flashcards = []
     engine = get_nlp()
     if engine is None:
@@ -358,6 +403,15 @@ def generate_mcq(notes: str) -> List[Dict]:
         "GENERIC": ["Nucleus", "Ribosome", "Cell Wall", "Chloroplast", "Mitochondria", "Cytoplasm", "Endoplasmic cell"]
     }
     
+    # Extract noun phrase distractors from doc.noun_chunks
+    noun_phrases = []
+    for chunk in doc.noun_chunks:
+        chunk_clean = re.sub(r'[.\s]+$', '', chunk.text).strip()
+        if chunk_clean and len(chunk_clean) > 2 and not chunk.root.is_stop:
+            chunk_cap = chunk_clean[0].upper() + chunk_clean[1:]
+            if chunk_cap not in noun_phrases:
+                noun_phrases.append(chunk_cap)
+
     for sent in doc.sents:
         if len([t for t in sent if not t.is_punct]) < 4:
             continue
@@ -406,10 +460,31 @@ def generate_mcq(notes: str) -> List[Dict]:
             candidates = entities_by_type.get(ent_label, [])
             for cand in candidates:
                 cand_clean = re.sub(r'[.\s]+$', '', cand).strip()
-                if cand_clean.lower() != correct_ans_clean.lower() and cand_clean not in distractors and len(cand_clean) > 1:
-                    distractors.append(cand_clean)
-                    
-            # 2. Add fallback entities of the same type
+                if len(cand_clean) > 0:
+                    cand_cap = cand_clean[0].upper() + cand_clean[1:]
+                    if cand_cap.lower() != correct_ans_clean.lower() and cand_cap not in distractors:
+                        distractors.append(cand_cap)
+            
+            # 2. Add mined Noun Phrases from doc.noun_chunks (Advanced MCQ quality distractor mining)
+            if len(distractors) < 3:
+                for np in noun_phrases:
+                    if np.lower() != correct_ans_clean.lower() and np not in distractors:
+                        distractors.append(np)
+                        if len(distractors) >= 3:
+                            break
+
+            # 3. Add general nouns from text
+            if len(distractors) < 3:
+                for n in all_nouns:
+                    n_clean = n.strip()
+                    if len(n_clean) > 0:
+                        n_cap = n_clean[0].upper() + n_clean[1:]
+                        if n_cap.lower() != correct_ans_clean.lower() and n_cap not in distractors:
+                            distractors.append(n_cap)
+                            if len(distractors) >= 3:
+                                break
+
+            # 4. Add fallback entities of the same type
             if len(distractors) < 3:
                 backup = fallbacks.get(ent_label, fallbacks["GENERIC"])
                 for b in backup:
@@ -419,16 +494,7 @@ def generate_mcq(notes: str) -> List[Dict]:
                         if len(distractors) >= 3:
                             break
                             
-            # 3. Add general nouns from text
-            if len(distractors) < 3:
-                for n in all_nouns:
-                    n_clean = n.strip()
-                    if n_clean.lower() != correct_ans_clean.lower() and n_clean not in distractors and len(n_clean) > 1:
-                        distractors.append(n_clean)
-                        if len(distractors) >= 3:
-                            break
-                            
-            # 4. Final fallback using biological/general terms
+            # 5. Final fallback using biological/general terms
             if len(distractors) < 3:
                 for fallback_val in fallbacks["GENERIC"]:
                     if fallback_val.lower() != correct_ans_clean.lower() and fallback_val not in distractors:
@@ -438,8 +504,17 @@ def generate_mcq(notes: str) -> List[Dict]:
                             
             distractors = distractors[:3]
             
-            # Build options list
+            # Build options list (exactly 4 unique realistic options)
             options = [correct_ans_clean] + distractors
+            # Keep it unique
+            options = list(dict.fromkeys(options))
+            while len(options) < 4:
+                # Add unique fallbacks if not 4 options
+                for item in fallbacks["GENERIC"]:
+                    if item not in options:
+                        options.append(item)
+                        break
+            options = options[:4]
             random.shuffle(options)
             
             flashcards.append({
@@ -459,12 +534,12 @@ def generate_mcq(notes: str) -> List[Dict]:
             unique.append(c)
     return unique
 
-def generate_flashcards_upgraded(notes: str, count: int, card_type: str) -> List[Dict]:
+def generate_flashcards_upgraded(notes: str, count: int, card_type: str, ignore_words: List[str] = None) -> List[Dict]:
     """Orchestrator to generate specific flashcard types up to the requested count."""
     if card_type == "mcq":
         cards = generate_mcq(notes)
     elif card_type == "fillup":
-        cards = generate_fillups(notes)
+        cards = generate_fillups(notes, ignore_words)
     else:
         cards = generate_qa(notes)
         
