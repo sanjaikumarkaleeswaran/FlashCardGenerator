@@ -1,21 +1,21 @@
 services:
   # ─────────────────────────────────────────
-  # Backend: FastAPI + spaCy (Docker-based)
+  # Backend: FastAPI + spaCy (Python Native)
   # ─────────────────────────────────────────
   - type: web
     name: smartflash-backend
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    runtime: python
+    rootDir: ./backend
+    buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     plan: free
     envVars:
       - key: MONGO_URL
         sync: false          # Set this manually in Render dashboard
       - key: JWT_SECRET
         sync: false          # Set this manually in Render dashboard
-      - key: PORT
-        value: 8000
-    healthCheckPath: /
+      - key: PYTHON_VERSION
+        value: 3.11.0
 
   # ─────────────────────────────────────────
   # Frontend: React/Vite (Static Site)
@@ -23,8 +23,9 @@ services:
   - type: web
     name: smartflash-frontend
     runtime: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
+    rootDir: ./frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
     plan: free
     envVars:
       - key: VITE_API_URL

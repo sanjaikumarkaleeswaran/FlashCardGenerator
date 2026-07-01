@@ -16,6 +16,27 @@ This project is built privacy-first: **no paid external AI APIs are used**. All 
 
 ---
 
+## 🤖 AI Architecture
+
+The generation pipeline leverages **Groq inference** for high-speed LLM processing, falling back to a local offline spaCy parsing engine if the API is unavailable.
+
+```text
+User Notes
+   ↓
+Groq LLM (llama-3.1-8b-instant)
+   ↓
+Structured Flashcards (JSON validation)
+   ↓
+MongoDB
+   ↓
+SM-2 Review (Spaced Repetition)
+```
+
+> [!NOTE]
+> This project does **not** use any OpenAI API. All main inference is handled by Groq for maximum speed and quality, with a fully local spaCy NLP engine as a fallback.
+
+---
+
 ## 🛠 Tech Stack
 
 ### Frontend
@@ -184,14 +205,36 @@ The core question generation engine works offline in `backend/services/nlp_gener
 
 ### 2. Flashcard Management
 * **Generate Flashcards**: `POST /api/flashcards/generate`
-  * Request: `{"notes": "Photosynthesis is the process plants use to create food. Albert Einstein developed relativity in 1915."}`
+  * Request (Accepts `notes` or `content`):
+    ```json
+    {
+      "content": "Photosynthesis is the process plants use to create food. Albert Einstein developed relativity in 1915.",
+      "type": "mcq",
+      "count": 10
+    }
+    ```
   * Response (201):
     ```json
     {
       "id": "set_id_123",
       "title": "Photosynthesis & Relativity",
-      "card_count": 2,
+      "card_count": 1,
+      "source": "groq",
+      "model": "llama-3.1-8b-instant",
+      "generation_method": "groq",
+      "generation_model": "llama-3.1-8b-instant",
       "cards": [
+        {
+          "id": "card_id_1",
+          "question": "What is Photosynthesis?",
+          "answer": "The process plants use to create food",
+          "difficulty": "easy",
+          "status": "not_known",
+          "priority": 0,
+          "reviewCount": 0
+        }
+      ],
+      "flashcards": [
         {
           "id": "card_id_1",
           "question": "What is Photosynthesis?",

@@ -31,6 +31,8 @@ class FlashcardSetCreate(BaseModel):
     cards: List[Flashcard]
     subject: str = "General"
     folder_name: Optional[str] = None
+    generation_method: Optional[str] = None
+    generation_model: Optional[str] = None
 
 class FlashcardSetResponse(BaseModel):
     id: str
@@ -43,9 +45,15 @@ class FlashcardSetResponse(BaseModel):
     card_count: int
     subject: str = "General"
     folder_name: Optional[str] = None
+    source: Optional[str] = None
+    model: Optional[str] = None
+    generation_method: Optional[str] = None
+    generation_model: Optional[str] = None
+    flashcards: Optional[List[Flashcard]] = None
 
 class FlashcardGenerateRequest(BaseModel):
     notes: Optional[str] = None
+    content: Optional[str] = None
     source: Optional[str] = None  # Reference to document_id
     count: int = 10
     type: str = "qa"  # "qa" | "fillup" | "mcq"

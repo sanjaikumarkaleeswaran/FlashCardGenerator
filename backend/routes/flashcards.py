@@ -20,6 +20,7 @@ from models.flashcard import (
     SM2ReviewUpdateRequest
 )
 from services.nlp_generator import generate_flashcards_upgraded, get_nlp
+from services.groq_service import generate_flashcards_with_groq
 
 router = APIRouter()
 
@@ -76,6 +77,9 @@ async def generate_set(payload: FlashcardGenerateRequest, current_user: dict = D
         filename = doc_record.get("filename", "document")
         ext = filename.split(".")[-1].lower() if "." in filename else "txt"
         source_type = ext if ext in ["pdf", "docx", "txt"] else "txt"
+    elif payload.content:
+        text = payload.content.strip()
+        source_type = "text"
     elif payload.notes:
         text = payload.notes.strip()
         source_type = "text"
@@ -92,8 +96,22 @@ async def generate_set(payload: FlashcardGenerateRequest, current_user: dict = D
             detail="Source content must be at least 30 characters long to generate high-quality cards."
         )
 
-    # 3. Generate cards using upgraded NLP service
-    cards_data = generate_flashcards_upgraded(text, payload.count, payload.type, payload.ignore_words, payload.difficulty)
+    # 3. Generate cards using Groq API or spaCy fallback
+    generation_method = "groq"
+    generation_model = "llama-3.1-8b-instant"
+    cards_data = []
+    
+    try:
+        cards_data = generate_flashcards_with_groq(text, payload.type, payload.count)
+        if not cards_data:
+            raise ValueError("Empty or invalid response from Groq API")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Groq API generation failed, falling back to spaCy: {e}")
+        generation_method = "spacy"
+        generation_model = "en_core_web_sm"
+        cards_data = generate_flashcards_upgraded(text, payload.count, payload.type, payload.ignore_words, payload.difficulty)
+        
     if not cards_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -154,7 +172,9 @@ async def generate_set(payload: FlashcardGenerateRequest, current_user: dict = D
         "created_at": datetime.now(timezone.utc),
         "cards": [card.dict() for card in cards],
         "subject": subject_val,
-        "folder_name": payload.folder_name
+        "folder_name": payload.folder_name,
+        "generation_method": generation_method,
+        "generation_model": generation_model
     }
     
     result = await flashcard_sets_collection.insert_one(set_doc)
@@ -169,7 +189,12 @@ async def generate_set(payload: FlashcardGenerateRequest, current_user: dict = D
         "cards": cards,
         "card_count": len(cards),
         "subject": subject_val,
-        "folder_name": payload.folder_name
+        "folder_name": payload.folder_name,
+        "source": generation_method,
+        "model": generation_model,
+        "generation_method": generation_method,
+        "generation_model": generation_model,
+        "flashcards": cards
     }
 
 @router.get("/flashcards", response_model=List[FlashcardSetResponse])
@@ -181,6 +206,8 @@ async def list_sets(current_user: dict = Depends(get_current_user)):
     response = []
     for s in sets_db:
         cards_list = [Flashcard(**c) for c in s.get("cards", [])]
+        gen_method = s.get("generation_method")
+        gen_model = s.get("generation_model")
         response.append({
             "id": str(s["_id"]),
             "title": s.get("title", "Untitled Set"),
@@ -191,7 +218,12 @@ async def list_sets(current_user: dict = Depends(get_current_user)):
             "cards": cards_list,
             "card_count": len(cards_list),
             "subject": s.get("subject", "General"),
-            "folder_name": s.get("folder_name")
+            "folder_name": s.get("folder_name"),
+            "source": gen_method,
+            "model": gen_model,
+            "generation_method": gen_method,
+            "generation_model": gen_model,
+            "flashcards": cards_list
         })
     return response
 
