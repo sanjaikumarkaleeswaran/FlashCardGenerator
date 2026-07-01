@@ -57,10 +57,10 @@ const CreateFlashcards = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const pipelineSteps = [
-    { title: 'Initializing AI environment', desc: 'Connecting to Groq LLM host...', icon: Cpu, color: 'text-indigo-500 bg-indigo-500/10' },
-    { title: 'Analyzing study content', desc: 'Preparing prompt instructions...', icon: Brain, color: 'text-purple-500 bg-purple-500/10' },
-    { title: 'Groq LLM Generation', desc: 'Generating structured flashcards via llama-3.1-8b-instant...', icon: Globe, color: 'text-amber-500 bg-amber-500/10' },
-    { title: 'Validating structured output', desc: 'Checking schema integrity...', icon: Zap, color: 'text-rose-500 bg-rose-500/10' },
+    { title: 'Analyzing document...', desc: 'Reading structure and raw text content...', icon: Cpu, color: 'text-indigo-500 bg-indigo-500/10' },
+    { title: 'Extracting concepts...', desc: 'Identifying main topics, definitions, and relationships...', icon: Brain, color: 'text-purple-500 bg-purple-500/10' },
+    { title: 'Creating flashcards...', desc: 'Formulating high-yield QA, MCQ, or fill-up cards...', icon: Globe, color: 'text-amber-500 bg-amber-500/10' },
+    { title: 'Validating structured output', desc: 'Checking schema integrity and validating answers...', icon: Zap, color: 'text-rose-500 bg-rose-500/10' },
     { title: 'Database syncing', desc: 'Indexing card weights & review intervals...', icon: Database, color: 'text-cyan-500 bg-cyan-500/10' }
   ];
 
@@ -428,7 +428,7 @@ const CreateFlashcards = () => {
                   isLoading={isLoading}
                   icon={Sparkles}
                 >
-                  Synthesize Decks
+                  Generate AI Flashcards
                 </Button>
               </div>
             </CardContent>

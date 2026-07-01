@@ -22,6 +22,8 @@ class Flashcard(BaseModel):
     next_review_date: datetime = Field(default_factory=datetime.utcnow)
     subject: str = "General"
     tags: List[str] = []
+    topic: Optional[str] = "General"
+    source_document: Optional[str] = None
 
 class FlashcardSetCreate(BaseModel):
     title: str

@@ -20,7 +20,7 @@ from models.flashcard import (
     SM2ReviewUpdateRequest
 )
 from services.nlp_generator import generate_flashcards_upgraded, get_nlp
-from services.groq_service import generate_flashcards_with_groq
+from services.ai_flashcard_generator import generate_smart_flashcards
 
 router = APIRouter()
 
@@ -96,21 +96,21 @@ async def generate_set(payload: FlashcardGenerateRequest, current_user: dict = D
             detail="Source content must be at least 30 characters long to generate high-quality cards."
         )
 
-    # 3. Generate cards using Groq API or spaCy fallback
-    generation_method = "groq"
-    generation_model = "llama-3.1-8b-instant"
-    cards_data = []
-    
+    # 3. Generate cards using upgraded AI flashcard generator
     try:
-        cards_data = generate_flashcards_with_groq(text, payload.type, payload.count)
-        if not cards_data:
-            raise ValueError("Empty or invalid response from Groq API")
+        cards_data, generation_method, generation_model = generate_smart_flashcards(
+            text, 
+            payload.type, 
+            payload.count, 
+            payload.difficulty or "medium"
+        )
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f"Groq API generation failed, falling back to spaCy: {e}")
-        generation_method = "spacy"
-        generation_model = "en_core_web_sm"
-        cards_data = generate_flashcards_upgraded(text, payload.count, payload.type, payload.ignore_words, payload.difficulty)
+        logging.getLogger(__name__).error(f"AI generation pipeline failed completely: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate flashcards: {str(e)}"
+        )
         
     if not cards_data:
         raise HTTPException(
@@ -159,7 +159,9 @@ async def generate_set(payload: FlashcardGenerateRequest, current_user: dict = D
             repetitions=0,
             next_review_date=now,
             subject=subject_val,
-            tags=[subject_val]
+            tags=[subject_val],
+            topic=c.get("topic") or subject_val,
+            source_document=filename or "Text Input"
         ))
 
     # 6. Save set to MongoDB
