@@ -10,10 +10,15 @@ const CARD_GRADIENTS = [
   { front: 'from-cyan-500 via-sky-600 to-indigo-600', back: 'from-emerald-500 via-lime-500 to-green-600' },
 ];
 
-const Flashcard = ({ card, isFlipped, onFlip }) => {
+const Flashcard = ({ card, isFlipped, onFlip, onSwipeLeft, onSwipeRight }) => {
   const [speakRate, setSpeakRate] = useState(1.0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Swipe gesture state variables
+  const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isSwiping, setIsSwiping] = useState(false);
 
   // Stable gradient index based on card id
   const gradientIndex = card?.id
@@ -85,13 +90,87 @@ const Flashcard = ({ card, isFlipped, onFlip }) => {
     }
   };
 
+  // Touch Gesture Handlers
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isSwiping) return;
+    const touch = e.touches[0];
+    const diffX = touch.clientX - touchStart.x;
+    const diffY = touch.clientY - touchStart.y;
+    
+    // Scroll-safe check: if vertical movement is larger, let the user scroll
+    if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+      return;
+    }
+    
+    if (Math.abs(diffY) > Math.abs(diffX) * 1.3) {
+      setIsSwiping(false);
+      setDragOffset({ x: 0, y: 0 });
+      return;
+    }
+    
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+    setDragOffset({ x: diffX, y: diffY });
+  };
+
+  const handleTouchEnd = () => {
+    if (!isSwiping) return;
+    setIsSwiping(false);
+    
+    const threshold = 100; // Drag threshold to trigger action
+    if (Math.abs(dragOffset.x) > threshold) {
+      if (dragOffset.x > 0 && onSwipeRight) {
+        onSwipeRight();
+      } else if (dragOffset.x < 0 && onSwipeLeft) {
+        onSwipeLeft();
+      }
+    }
+    setDragOffset({ x: 0, y: 0 });
+  };
+
+  const cardStyle = {
+    transform: isSwiping || Math.abs(dragOffset.x) > 0
+      ? `translate3d(${dragOffset.x}px, ${dragOffset.y * 0.25}px, 0) rotate(${dragOffset.x * 0.04}deg)`
+      : '',
+    transition: isSwiping ? 'none' : 'transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.25)',
+  };
+
   return (
     <div
       onClick={onFlip}
-      className="w-full h-80 max-w-xl mx-auto cursor-pointer perspective-1000 group relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={cardStyle}
+      className="w-full h-80 max-w-xl mx-auto cursor-pointer perspective-1000 group relative select-none"
     >
       {/* Outer ambient glow - colorful pulsing */}
       <div className={`absolute inset-0 bg-gradient-to-r ${gradient.front} rounded-3xl blur-2xl opacity-20 group-hover:opacity-40 group-hover:scale-105 transition-all duration-500`} />
+
+      {/* Swipe Indicator Glow Overlay */}
+      {Math.abs(dragOffset.x) > 10 && (
+        <div 
+          className="absolute inset-0 rounded-3xl pointer-events-none z-30 transition-opacity duration-100 flex items-center justify-center"
+          style={{
+            backgroundColor: dragOffset.x > 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            border: `3px solid ${dragOffset.x > 0 ? '#10b981' : '#ef4444'}`,
+            opacity: Math.min(Math.abs(dragOffset.x) / 120, 0.8)
+          }}
+        >
+          <span className={`px-4 py-2 rounded-2xl text-white font-extrabold text-sm uppercase tracking-wider shadow-lg ${
+            dragOffset.x > 0 ? 'bg-emerald-500' : 'bg-rose-500'
+          }`}>
+            {dragOffset.x > 0 ? 'Mastered ✓' : 'Practice ↺'}
+          </span>
+        </div>
+      )}
 
       <div
         className={`relative w-full h-full duration-[600ms] transition-transform transform-style-3d ${

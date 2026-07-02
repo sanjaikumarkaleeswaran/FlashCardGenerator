@@ -547,6 +547,8 @@ const Review = () => {
           card={currentCard}
           isFlipped={isFlipped}
           onFlip={handleFlip}
+          onSwipeLeft={() => handleReviewAction('not_known')}
+          onSwipeRight={() => handleReviewAction('known')}
         />
       )}
 

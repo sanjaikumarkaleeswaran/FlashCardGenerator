@@ -64,6 +64,15 @@ const StudyAssistant = () => {
   const [studyPlan, setStudyPlan] = useState(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
+  // Auto-scroll ref
+  const messagesEndRef = React.useRef(null);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isSending]);
+
   // Load Initial KBs
   const loadKBs = async () => {
     try {
@@ -387,7 +396,7 @@ const StudyAssistant = () => {
             {/* VIEW 2: Grounded RAG study chat */}
             {activeTab === 'chat' && (
               <div className="space-y-4">
-                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-lg flex flex-col h-[520px]">
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-lg flex flex-col h-[calc(100vh-280px)] min-h-[460px] lg:h-[550px]">
                   {/* Active Document Header */}
                   <div className="p-4 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between">
                     <span className="text-xs font-black text-indigo-500">Active context: {selectedDoc ? selectedDoc.title : "None selected"}</span>
@@ -435,6 +444,7 @@ const StudyAssistant = () => {
                         </div>
                       </div>
                     )}
+                    <div ref={messagesEndRef} />
                   </div>
                   
                   {/* Chat Form */}

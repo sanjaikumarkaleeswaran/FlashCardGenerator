@@ -468,7 +468,7 @@ const Dashboard = () => {
 
             {/* SVG line chart */}
             <div className="w-full pt-4 relative">
-              <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-auto min-w-[500px]">
+              <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-auto">
                 <defs>
                   {/* Premium Area Fill Gradient */}
                   <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">

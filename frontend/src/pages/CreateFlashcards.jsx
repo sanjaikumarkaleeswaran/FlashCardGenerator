@@ -60,6 +60,18 @@ const CreateFlashcards = () => {
   // Advanced pipeline state for stepping animation
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
+  // Auto-scroll to results ref
+  const generationContainerRef = React.useRef(null);
+
+  useEffect(() => {
+    if (isLoading || generatedSet) {
+      // Small timeout to let DOM render
+      setTimeout(() => {
+        generationContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+  }, [isLoading, generatedSet]);
+
   const pipelineSteps = [
     { title: 'Analyzing document...', desc: 'Reading structure and raw text content...', icon: Cpu, color: 'text-indigo-500 bg-indigo-500/10' },
     { title: 'Extracting concepts...', desc: 'Identifying main topics, definitions, and relationships...', icon: Brain, color: 'text-purple-500 bg-purple-500/10' },
@@ -501,7 +513,7 @@ const CreateFlashcards = () => {
         </div>
 
         {/* Right Side: Stepping Progress or Card Preview */}
-        <div className="lg:col-span-7 space-y-6">
+        <div ref={generationContainerRef} className="lg:col-span-7 space-y-6">
           {isLoading ? (
             /* Custom Stepping Progress Animation */
             <Card className="p-8 shadow-2xl bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/85 relative overflow-hidden">
