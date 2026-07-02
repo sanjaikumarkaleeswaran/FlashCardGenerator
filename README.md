@@ -398,5 +398,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 **Student Developer / Contributor**
 *   **GitHub**: [github.com/sanjaikumarkaleeswaran](https://github.com/sanjaikumarkaleeswaran)
-*   **LinkedIn**: [linkedin.com/in/yourprofile](https://www.linkedin.com/in/sanjaikumar-kaleeswaran/)
-*   **Portfolio**: [yourportfolio.dev](https://smartflash-frontend.onrender.com/)
+*   **LinkedIn**: [linkedin](https://www.linkedin.com/in/sanjaikumar-kaleeswaran/)
+*   **Portfolio**: [live view](https://smartflash-frontend.onrender.com/)
