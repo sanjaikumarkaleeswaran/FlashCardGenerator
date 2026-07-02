@@ -35,28 +35,28 @@
 
 ## Features
 
-### 🔐 Authentication
+### Authentication
 *   **Secure Registration & Login**: Multi-stage validation using password hashing via `bcrypt`.
 *   **JWT & Refresh Token Rotation**: Implements dual JWT setups (short-lived access tokens, long-lived rotating refresh tokens stored in MongoDB) with automatic session invalidation upon token-reuse detection.
 *   **Protected Route Architecture**: Client-side navigation guards alongside server-side FastAPI dependency verification (`Depends(get_current_user)`).
 
-### 📄 AI Document Processing
+### AI Document Processing
 *   **Rich Format Ingestion**: Accepts PDF, DOCX, TXT, PPTX slide decks, image uploads (OCR via cloud/local processors), and audio files (Whisper speech-to-text transcribing voice notes).
 *   **Extraction & Chunking Pipeline**: Parses document structure, splits content into semantic chunks, generates vectors for quick retrieval, and feeds clean data to the generative engines.
 *   **AES Encryption Vault**: Document text strings are fully encrypted at rest and decrypted on the fly during generation, securing proprietary learning materials.
 
-### 🧠 AI Flashcard Generation
+### AI Flashcard Generation
 *   **Multi-Format Decks**: Outputs Definitions, QA Cards, Multiple Choice options (MCQs) with shuffled distractors, and Cloze fill-ups.
 *   **Custom Prompting Templates**: Allows saving specific learning styles (e.g. *ELI5* simple explanations, *Formula Focus* for math/physics, *Interview Prep* mock questions).
 *   **Advanced Validation**: Filters generated cards to prevent duplicates, verifies schema compliance, and validates answer accuracy.
 
-### 📅 Smart Review Queue (SM-2)
+### Smart Review Queue (SM-2)
 *   **SM-2 Spaced Repetition**: Tracks Ease Factor, interval progression, and repetition counts.
 *   **Review Forecasts**: Provides a 30-day forecast chart predicting upcoming daily review volume.
 *   **Leech Alert Detection**: Flags difficult terms with high fail/lapse ratios for custom study sessions.
 *   **Interactive Study Player**: Feature-rich study screen supporting keyboard shortcuts, card flipping, progress bars, and custom audio speech playback.
 
-### 📊 Workspace Dashboard
+### Workspace Dashboard
 *   **Mastery Heatmaps & Timelines**: High-impact SVG visualisations tracking streaks, review volume, and historical retention metrics.
 *   **Document File Center**: A complete document manager panel enabling direct file uploads, database reference deletions, and single-click generation redirection.
 *   **Learning Analytics**: Focuses on study hours, strongest/weakest topics, and completed quiz scores.
@@ -250,7 +250,7 @@ The backend application requires a `.env` file in the `backend/` directory with 
 
 ## API Documentation
 
-### 🔑 Authentication APIs
+### Authentication APIs
 | Method | Route | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/register` | Register new student profile | No |
@@ -259,7 +259,7 @@ The backend application requires a `.env` file in the `backend/` directory with 
 | `POST` | `/api/auth/logout` | Revoke active refresh token | Yes |
 | `GET` | `/api/me` | Fetch active user credentials | Yes |
 
-### 🧠 Flashcard APIs
+### Flashcard APIs
 | Method | Route | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/flashcards/generate` | Build new study sets from source | Yes |
@@ -270,14 +270,14 @@ The backend application requires a `.env` file in the `backend/` directory with 
 | `PUT` | `/api/flashcards/set/{set_id}/card/{card_id}` | Edit an existing card | Yes |
 | `DELETE` | `/api/flashcards/set/{set_id}/card/{card_id}` | Delete a card from a set | Yes |
 
-### 📄 Document & Upload APIs
+### Document & Upload APIs
 | Method | Route | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/documents/upload` | Upload & process text/PDF/DOCX/PPTX/Audio/Image | Yes |
 | `GET` | `/api/documents` | List all uploaded documents | Yes |
 | `DELETE` | `/api/documents/{doc_id}` | Remove document references and vault text | Yes |
 
-### 📅 Spaced Repetition Review APIs
+### Spaced Repetition Review APIs
 | Method | Route | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/review` | Retrieve due cards for today (cap-limited) | Yes |
@@ -286,7 +286,7 @@ The backend application requires a `.env` file in the `backend/` directory with 
 | `GET` | `/api/forecast` | Retrieve daily review forecasts for 30 days | Yes |
 | `GET` | `/api/leech` | Retrieve flagged low ease-factor cards | Yes |
 
-### 🤖 AI Study Assistant & Tutor APIs
+### AI Study Assistant & Tutor APIs
 | Method | Route | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/upload` | KB ingestion alias route | Yes |
