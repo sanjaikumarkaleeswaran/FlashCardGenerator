@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Sparkles, 
   Play, 
@@ -31,6 +31,7 @@ import Skeleton from '../components/ui/Skeleton';
 
 const CreateFlashcards = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [inputMethod, setInputMethod] = useState('text'); // 'text' | 'document'
   const [notes, setNotes] = useState('');
   
@@ -84,9 +85,21 @@ const CreateFlashcards = () => {
       } catch (err) {
         console.error("Failed to load settings:", err);
       }
+
+      // Check query parameters to pre-fill a document source
+      const queryParams = new URLSearchParams(location.search);
+      const queryDocId = queryParams.get('source');
+      const queryDocName = queryParams.get('name');
+      if (queryDocId) {
+        setInputMethod('document');
+        setDocId(queryDocId);
+        if (queryDocName) {
+          setDocName(queryDocName);
+        }
+      }
     };
     loadData();
-  }, []);
+  }, [location.search]);
 
   const handleUploadSuccess = (uploadedId, name, preview) => {
     setDocId(uploadedId);

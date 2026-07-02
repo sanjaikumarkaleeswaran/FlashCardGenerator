@@ -143,6 +143,16 @@ export const flashcardService = {
     return response.data;
   },
 
+  async listDocuments() {
+    const response = await api.get('/api/documents');
+    return response.data;
+  },
+
+  async deleteDocument(docId) {
+    const response = await api.delete(`/api/documents/${docId}`);
+    return response.data;
+  },
+
   async list() {
     const response = await api.get('/api/flashcards');
     return response.data;

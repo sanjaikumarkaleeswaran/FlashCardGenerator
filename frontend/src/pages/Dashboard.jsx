@@ -14,7 +14,10 @@ import {
   Calendar,
   Filter,
   Flame,
-  Award
+  Award,
+  Trash2,
+  Sparkles,
+  UploadCloud
 } from 'lucide-react';
 import { flashcardService } from '../services/api';
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
@@ -22,9 +25,11 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import Tooltip from '../components/ui/Tooltip';
+import DocumentUpload from './DocumentUpload';
 
 const Dashboard = () => {
   const [sets, setSets] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -62,6 +67,13 @@ const Dashboard = () => {
         console.error("Failed to fetch leech cards:", err);
       }
 
+      try {
+        const docsData = await flashcardService.listDocuments();
+        setDocuments(docsData || []);
+      } catch (err) {
+        console.error("Failed to fetch documents:", err);
+      }
+
       // Add a slight delay for smooth layout transitions
       setTimeout(() => {
         setIsLoading(false);
@@ -69,6 +81,27 @@ const Dashboard = () => {
     };
     fetchDashboardData();
   }, []);
+
+  const handleUploadSuccess = async (uploadedId, name, preview) => {
+    try {
+      const docsData = await flashcardService.listDocuments();
+      setDocuments(docsData || []);
+    } catch (err) {
+      console.error("Failed to refresh documents list:", err);
+    }
+  };
+
+  const handleDeleteDocument = async (docId) => {
+    if (window.confirm("Are you sure you want to delete this document? This will remove the document reference but won't delete existing generated flashcard sets.")) {
+      try {
+        await flashcardService.deleteDocument(docId);
+        setDocuments(prevDocs => prevDocs.filter(d => d.id !== docId));
+      } catch (err) {
+        console.error("Failed to delete document:", err);
+        setError("Failed to delete document. Please try again.");
+      }
+    }
+  };
 
   // Get unique subjects for filter dropdown
   const uniqueSubjects = ['All Subjects', ...new Set(sets.map(s => s.subject || 'General'))];
@@ -87,14 +120,9 @@ const Dashboard = () => {
   let qaCount = 0;
   let mcqCount = 0;
   let fillupCount = 0;
-  let docsUploadedCount = 0;
+  const docsUploadedCount = documents.length;
 
   filteredSets.forEach((set) => {
-    const srcType = set.source_type?.toLowerCase() || 'text';
-    if (['pdf', 'docx', 'txt'].includes(srcType)) {
-      docsUploadedCount += 1;
-    }
-
     totalCards += set.cards.length;
     set.cards.forEach((card) => {
       if (card.status === 'known') {
@@ -827,6 +855,87 @@ const Dashboard = () => {
               })}
             </div>
           )}
+
+          {/* Document File Center Card */}
+          <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-805 shadow-md space-y-6">
+            <CardHeader className="p-0 pb-4 flex justify-between items-center border-b border-slate-50 dark:border-slate-850/50">
+              <div>
+                <CardTitle className="text-base font-extrabold flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-500" />
+                  <span>Document File Center</span>
+                </CardTitle>
+                <CardDescription>Upload study materials and manage your source files directly from here.</CardDescription>
+              </div>
+            </CardHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+              {/* Uploader Left Panel */}
+              <div className="md:col-span-5 space-y-2">
+                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Quick Upload File
+                </label>
+                <DocumentUpload 
+                  onUploadSuccess={handleUploadSuccess}
+                />
+              </div>
+
+              {/* Uploaded Documents List Right Panel */}
+              <div className="md:col-span-7 space-y-3">
+                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Uploaded Files ({documents.length})
+                </label>
+
+                {documents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-8 bg-slate-50/40 dark:bg-slate-950/10 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl h-[170px] text-center">
+                    <UploadCloud className="w-8 h-8 text-slate-350 dark:text-slate-600 mb-2" />
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No documents uploaded yet</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 max-w-[200px]">Drag a PDF, DOCX, or TXT file on the left to start importing knowledge.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                    {documents.map((doc) => (
+                      <div 
+                        key={doc.id} 
+                        className="p-3 bg-slate-50/60 dark:bg-slate-950/20 border border-slate-150 dark:border-slate-800/60 rounded-2xl flex items-center justify-between gap-4 group hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 shrink-0">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-250 truncate pr-2" title={doc.filename}>
+                              {doc.filename}
+                            </p>
+                            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
+                              {new Date(doc.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} | {(doc.char_count / 1000).toFixed(1)}k chars
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Link 
+                            to={`/create?source=${doc.id}&name=${encodeURIComponent(doc.filename)}`}
+                            title="Generate Flashcards"
+                          >
+                            <button className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 transition-all cursor-pointer">
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </button>
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-455 transition-all cursor-pointer"
+                            title="Delete File"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Right Side: Circular Mastery Ring & Card Types */}

@@ -95,3 +95,58 @@ async def upload_document(
         "char_count": len(clean_text),
         "preview": clean_text[:300] + ("..." if len(clean_text) > 300 else "")
     }
+
+
+@router.get("", status_code=status.HTTP_200_OK)
+async def list_documents(current_user: dict = Depends(get_current_user)):
+    """
+    List all uploaded documents for the current user.
+    """
+    cursor = documents_collection.find({"user_id": current_user["_id"]}).sort("created_at", -1)
+    docs = await cursor.to_list(length=100)
+    
+    results = []
+    for d in docs:
+        text = d.get("extracted_text", "")
+        if d.get("is_encrypted") and text:
+            try:
+                text = decrypt_text(text)
+            except Exception:
+                pass
+        
+        results.append({
+            "id": str(d["_id"]),
+            "filename": d.get("filename", "Untitled Document"),
+            "created_at": d.get("created_at", datetime.utcnow()),
+            "char_count": len(text),
+            "preview": text[:150] + ("..." if len(text) > 150 else "")
+        })
+    return results
+
+
+@router.delete("/{doc_id}", status_code=status.HTTP_200_OK)
+async def delete_document(doc_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Delete an uploaded document.
+    """
+    try:
+        doc_obj_id = ObjectId(doc_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid document ID format."
+        )
+        
+    result = await documents_collection.delete_one({
+        "_id": doc_obj_id,
+        "user_id": current_user["_id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found or access denied."
+        )
+        
+    return {"message": "Document deleted successfully."}
+
