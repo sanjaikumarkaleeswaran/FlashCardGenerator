@@ -51,6 +51,7 @@ const Navbar = () => {
 
   const NAV_LINKS = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'from-indigo-500 to-purple-600' },
+    { to: '/assistant', label: 'AI Tutor',   icon: Sparkles,        color: 'from-blue-500 to-indigo-650'  },
     { to: '/create',    label: 'Create',    icon: PlusCircle,       color: 'from-purple-500 to-pink-600'  },
     { to: '/review',    label: 'Review',    icon: Play,             color: 'from-emerald-500 to-cyan-600' },
     { to: '/history',   label: 'History',   icon: HistoryIcon,      color: 'from-amber-500 to-orange-600' },

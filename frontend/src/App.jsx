@@ -9,6 +9,7 @@ import CreateFlashcards from './pages/CreateFlashcards';
 import Review from './pages/Review';
 import History from './pages/History';
 import Settings from './pages/Settings';
+import StudyAssistant from './pages/StudyAssistant';
 import { authService } from './services/api';
 
 // Route Guard component to protect private study paths
@@ -35,6 +36,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assistant"
+              element={
+                <ProtectedRoute>
+                  <StudyAssistant />
                 </ProtectedRoute>
               }
             />
