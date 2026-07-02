@@ -6,7 +6,11 @@ from database import ping_database
 from routes.auth import router as auth_router
 from routes.flashcards import router as flashcards_router
 from routes.documents import router as documents_router
+from routes.settings import router as settings_router
 from services.nlp_generator import get_nlp
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from services.rate_limiter import limiter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +35,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Enable CORS — reads ALLOWED_ORIGINS from env (comma-separated list)
 # Default allows localhost dev + any .onrender.com domain
@@ -52,6 +58,7 @@ app.add_middleware(
 # Mount API Routers
 app.include_router(auth_router, prefix="/api")
 app.include_router(flashcards_router, prefix="/api")
+app.include_router(settings_router)
 app.include_router(documents_router)
 
 @app.get("/")

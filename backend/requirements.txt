@@ -12,3 +12,8 @@ bcrypt>=4.0.0
 pypdf>=3.17.0
 python-docx>=0.8.11
 groq
+slowapi>=0.1.9
+cryptography>=41.0.0
+python-pptx>=0.6.21
+pytesseract>=0.3.10
+pillow>=10.0.0

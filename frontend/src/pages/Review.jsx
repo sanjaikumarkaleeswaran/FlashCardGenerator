@@ -46,6 +46,7 @@ const Review = () => {
   // Track session metrics
   const [sessionKnown, setSessionKnown] = useState(0);
   const [sessionNotKnown, setSessionNotKnown] = useState(0);
+  const [failedCardIds, setFailedCardIds] = useState([]);
 
   // Advanced SM-2 grading toggle and speed
   const [showAdvancedGrading, setShowAdvancedGrading] = useState(false);
@@ -89,6 +90,50 @@ const Review = () => {
     fetchQueue();
   }, [setId]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const key = e.key;
+
+      if (key === ' ' || key === 'Enter') {
+        e.preventDefault();
+        if (cardType === 'qa') {
+          handleFlip();
+        } else if (!hasChecked) {
+          if (cardType === 'mcq' && selectedOption) {
+            setHasChecked(true);
+            const correct = selectedOption.trim().toLowerCase() === currentCard.answer.trim().toLowerCase();
+            setIsCorrect(correct);
+          }
+        }
+        return;
+      }
+
+      if (cardType === 'qa' || hasChecked) {
+        if (showAdvancedGrading) {
+          if (['0', '1', '2', '3', '4', '5'].includes(key)) {
+            e.preventDefault();
+            handleReviewSM2(parseInt(key));
+          }
+        } else {
+          if (key === '1' || key.toLowerCase() === 'n') {
+            e.preventDefault();
+            handleReviewAction('not_known');
+          } else if (key === '2' || key.toLowerCase() === 'k' || key.toLowerCase() === 'y') {
+            e.preventDefault();
+            handleReviewAction('known');
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cardType, isFlipped, hasChecked, selectedOption, showAdvancedGrading, currentIndex, queue]);
+
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
@@ -109,6 +154,7 @@ const Review = () => {
       setSessionKnown((prev) => prev + 1);
     } else {
       setSessionNotKnown((prev) => prev + 1);
+      setFailedCardIds((prev) => [...prev, currentCard.id]);
     }
 
     try {
@@ -212,6 +258,15 @@ const Review = () => {
     );
   }
 
+  const handleCramFailed = () => {
+    const failedCards = queue.filter(card => failedCardIds.includes(card.id));
+    setQueue(failedCards);
+    setCurrentIndex(0);
+    setSessionKnown(0);
+    setSessionNotKnown(0);
+    setFailedCardIds([]);
+  };
+
   // Session Completed / Empty state
   if (queue.length === 0 || currentIndex >= queue.length) {
     const isCompletedSession = queue.length > 0;
@@ -251,6 +306,15 @@ const Review = () => {
         )}
 
         <div className="flex flex-col gap-3">
+          {isCompletedSession && failedCardIds.length > 0 && (
+            <Button 
+              variant="warning" 
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-550 border-none text-white shadow-lg font-extrabold"
+              onClick={handleCramFailed}
+            >
+              Cram Incorrect Cards ({failedCardIds.length})
+            </Button>
+          )}
           <Link to="/dashboard" className="w-full">
             <Button variant="primary" className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-none shadow-lg shadow-indigo-500/15" icon={LayoutDashboard}>
               Go to Dashboard
@@ -562,6 +626,33 @@ const Review = () => {
 
         <div className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 max-w-xl mx-auto uppercase tracking-wider">
           Tip: Grade honestly! Spaced repetition brings forgotten cards back sooner.
+        </div>
+
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 rounded-2xl p-4 text-xs text-slate-600 dark:text-slate-400 space-y-2 max-w-xl mx-auto shadow-sm">
+          <div className="font-extrabold text-[10px] uppercase tracking-wider text-slate-400">Keyboard Shortcuts</div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 font-medium">
+            <div className="flex justify-between">
+              <span>Flip / Show Answer</span>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md font-extrabold shadow-sm">Space / Enter</kbd>
+            </div>
+            {showAdvancedGrading ? (
+              <div className="flex justify-between">
+                <span>Grade Quality (0-5)</span>
+                <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md font-extrabold shadow-sm">0 - 5</kbd>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between">
+                  <span>Grade "Not Known"</span>
+                  <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md font-extrabold shadow-sm">1 / N</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span>Grade "Known"</span>
+                  <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md font-extrabold shadow-sm">2 / K</kbd>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

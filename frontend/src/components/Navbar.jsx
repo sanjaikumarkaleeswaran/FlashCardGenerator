@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   BookOpen, LayoutDashboard, PlusCircle, Play, 
   History as HistoryIcon, LogOut, Menu, X,
-  LogIn, UserPlus, Sun, Moon, Sparkles
+  LogIn, UserPlus, Sun, Moon, Sparkles, Settings as SettingsIcon
 } from 'lucide-react';
 import { authService } from '../services/api';
 
@@ -54,6 +54,7 @@ const Navbar = () => {
     { to: '/create',    label: 'Create',    icon: PlusCircle,       color: 'from-purple-500 to-pink-600'  },
     { to: '/review',    label: 'Review',    icon: Play,             color: 'from-emerald-500 to-cyan-600' },
     { to: '/history',   label: 'History',   icon: HistoryIcon,      color: 'from-amber-500 to-orange-600' },
+    { to: '/settings',  label: 'Settings',  icon: SettingsIcon,     color: 'from-slate-500 to-slate-700'  },
   ];
 
   return (

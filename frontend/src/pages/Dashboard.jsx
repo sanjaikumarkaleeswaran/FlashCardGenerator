@@ -34,19 +34,38 @@ const Dashboard = () => {
   // Hovered Chart Node for Tooltip
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
+  // Spaced Repetition Analytics States
+  const [forecast, setForecast] = useState([]);
+  const [leechCards, setLeechCards] = useState([]);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const data = await flashcardService.list();
         setSets(data);
       } catch (err) {
+        console.error("Failed to fetch decks:", err);
         setError('Failed to fetch dashboard data. Please try again.');
-      } finally {
-        // Add a slight delay for smooth layout transitions
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 600);
       }
+
+      try {
+        const forecastData = await flashcardService.getForecast();
+        setForecast(forecastData || []);
+      } catch (err) {
+        console.error("Failed to fetch review forecast:", err);
+      }
+
+      try {
+        const leechData = await flashcardService.getLeechCards();
+        setLeechCards(leechData || []);
+      } catch (err) {
+        console.error("Failed to fetch leech cards:", err);
+      }
+
+      // Add a slight delay for smooth layout transitions
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 600);
     };
     fetchDashboardData();
   }, []);
@@ -637,6 +656,96 @@ const Dashboard = () => {
           </Card>
         </div>
 
+      </div>
+
+      {/* Spaced Repetition Diagnostics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Due Cards Forecast Calendar */}
+        <div className="lg:col-span-2">
+          <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/85 shadow-md h-full">
+            <CardHeader className="p-0 pb-4 flex justify-between items-center border-b border-slate-50 dark:border-slate-850/50 mb-4">
+              <div>
+                <CardTitle className="text-base font-extrabold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-indigo-500" />
+                  <span>Review Forecast Schedule</span>
+                </CardTitle>
+                <CardDescription>Number of flashcards scheduled for daily review over the next 7 days.</CardDescription>
+              </div>
+            </CardHeader>
+            
+            {forecast.length === 0 ? (
+              <div className="flex items-center justify-center p-8 text-slate-400 dark:text-slate-500 text-xs italic">
+                No due card forecast details available.
+              </div>
+            ) : (
+              <div className="grid grid-cols-7 gap-2.5 sm:gap-4 pt-2">
+                {forecast.slice(0, 7).map((fDay, idx) => {
+                  const dateObj = new Date(fDay.date + 'T00:00:00');
+                  const weekday = dateObj.toLocaleDateString(undefined, { weekday: 'short' });
+                  const dayNum = dateObj.toLocaleDateString(undefined, { day: 'numeric' });
+                  const isToday = idx === 0;
+                  
+                  return (
+                    <div key={idx} className={`flex flex-col items-center p-3 rounded-2xl border transition-all ${
+                      isToday
+                        ? 'bg-gradient-to-b from-indigo-50/70 to-indigo-100/40 dark:from-indigo-950/20 dark:to-indigo-950/40 border-indigo-200 dark:border-indigo-900/60 shadow-md shadow-indigo-500/5'
+                        : 'bg-slate-50/40 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/60'
+                    }`}>
+                      <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase">{weekday}</span>
+                      <span className={`text-sm font-black my-1.5 ${isToday ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>{dayNum}</span>
+                      <span className={`text-xs font-black px-2 py-0.5 rounded-lg ${
+                        fDay.count > 0 
+                          ? 'bg-indigo-100 text-indigo-850 dark:bg-indigo-900/50 dark:text-indigo-350' 
+                          : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-550'
+                      }`}>
+                        {fDay.count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Leech Cards Alerts */}
+        <div className="lg:col-span-1">
+          <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/85 shadow-md h-full">
+            <CardHeader className="p-0 pb-4 flex justify-between items-center border-b border-slate-50 dark:border-slate-850/50 mb-4">
+              <div>
+                <CardTitle className="text-base font-extrabold flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-rose-500" />
+                  <span>Leech Card Alert</span>
+                </CardTitle>
+                <CardDescription>Difficult terms identified by multiple learning failures.</CardDescription>
+              </div>
+            </CardHeader>
+            
+            {leechCards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-5 bg-slate-50/30 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/60 rounded-2xl h-[120px] text-center">
+                <CheckCircle className="w-6 h-6 text-emerald-500 mb-1.5" />
+                <p className="text-xs font-extrabold text-slate-750 dark:text-slate-300">All clear!</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-550 mt-0.5 leading-snug">No leech cards detected. Excellent recall memory!</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[140px] overflow-y-auto pr-1">
+                {leechCards.map((card) => (
+                  <div key={card.id} className="p-2.5 bg-rose-50/40 dark:bg-rose-950/10 rounded-xl border border-rose-100 dark:border-rose-900/30 flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-rose-755 dark:text-rose-400 truncate">{card.question}</p>
+                      <p className="text-[9px] text-slate-455 dark:text-slate-500 font-semibold">Lapses: <span className="font-extrabold text-rose-600">{card.lapses}</span> | Subject: {card.subject}</p>
+                    </div>
+                    <Link to={`/review?setId=${card.setId}`}>
+                      <button className="text-[9px] font-extrabold text-rose-755 bg-rose-100 hover:bg-rose-200 dark:text-rose-350 dark:bg-rose-900/40 dark:hover:bg-rose-900/60 px-2 py-1 rounded-lg transition-all shrink-0 cursor-pointer">
+                        Study
+                      </button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
 
       {/* Main Grid: Recent Sets and Mastery Gauge */}

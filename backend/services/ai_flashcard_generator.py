@@ -120,7 +120,9 @@ def generate_smart_flashcards(
     document_text: str,
     flashcard_type: str,
     number_of_cards: int,
-    difficulty: str = "medium"
+    difficulty: str = "medium",
+    model: Optional[str] = None,
+    custom_instructions: Optional[str] = None
 ) -> tuple[List[Dict], str, str]:
     """
     Generate high-quality concept-aware flashcards using Groq with spaCy fallback.
@@ -133,7 +135,8 @@ def generate_smart_flashcards(
         fallback_cards = generate_spaCy_fallback(document_text, flashcard_type, number_of_cards, difficulty)
         return (validate_and_filter_cards(fallback_cards, flashcard_type), "spacy", "en_core_web_sm")
 
-    model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+    if not model:
+        model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
     client = Groq(api_key=api_key)
     
     # 1. Chunk document if it's large
@@ -156,8 +159,11 @@ def generate_smart_flashcards(
     
     for i, chunk in enumerate(chunks):
         prompt = prompt_template.format(text=chunk, count=cards_per_chunk, difficulty=difficulty)
+        if custom_instructions and custom_instructions.strip():
+            prompt += f"\n\nCRITICAL ADDITIONAL INSTRUCTIONS (Strictly apply these styling and focus filters):\n{custom_instructions.strip()}"
+            
         try:
-            logger.info(f"Calling Groq API for chunk {i+1}/{len(chunks)}...")
+            logger.info(f"Calling Groq API for chunk {i+1}/{len(chunks)} using model {model}...")
             chat_completion = client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},

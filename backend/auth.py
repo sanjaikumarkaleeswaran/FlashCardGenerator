@@ -35,14 +35,26 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         return False
 
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Generate a JWT token for the user."""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+        # Production access tokens should be short-lived (e.g. 30 minutes)
+        # Keep 1440 mins for compatibility, or let's use 15 mins for production and support refresh token
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire, "type": "access"})
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def create_refresh_token(data: dict) -> str:
+    """Generate a longer-lived refresh token for the user."""
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -56,7 +68,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None:
+        token_type: str = payload.get("type", "access")
+        if email is None or token_type != "access":
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception

@@ -20,7 +20,7 @@ import {
   Globe,
   Database
 } from 'lucide-react';
-import { flashcardService } from '../services/api';
+import { flashcardService, settingsService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import DocumentUpload from './DocumentUpload';
 import Button from '../components/ui/Button';
@@ -45,6 +45,9 @@ const CreateFlashcards = () => {
   const [folderName, setFolderName] = useState('');
   const [ignoreWords, setIgnoreWords] = useState('');
   const [difficulty, setDifficulty] = useState('all'); // 'all' | 'easy' | 'medium' | 'hard'
+  const [userSettings, setUserSettings] = useState(null);
+  const [selectedPromptId, setSelectedPromptId] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
 
   // Existing subjects for suggestions
   const [subjectSuggestions, setSubjectSuggestions] = useState([]);
@@ -65,15 +68,24 @@ const CreateFlashcards = () => {
   ];
 
   useEffect(() => {
-    const loadSubjects = async () => {
+    const loadData = async () => {
       try {
         const list = await flashcardService.listSubjects();
         setSubjectSuggestions(list || []);
       } catch (err) {
         console.error("Failed to load subjects:", err);
       }
+      try {
+        const settingsData = await settingsService.getSettings();
+        if (settingsData && settingsData.settings) {
+          setUserSettings(settingsData.settings);
+          setSelectedModel(settingsData.settings.preferred_model || '');
+        }
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
     };
-    loadSubjects();
+    loadData();
   }, []);
 
   const handleUploadSuccess = (uploadedId, name, preview) => {
@@ -131,7 +143,9 @@ const CreateFlashcards = () => {
         subject: subject.trim() || 'General',
         folder_name: folderName.trim() || undefined,
         ignore_words: ignoreList.length > 0 ? ignoreList : undefined,
-        difficulty: difficulty === 'all' ? undefined : difficulty
+        difficulty: difficulty === 'all' ? undefined : difficulty,
+        custom_prompt_id: selectedPromptId || undefined,
+        model: selectedModel || undefined
       };
 
       const data = await flashcardService.generate(payload);
@@ -415,6 +429,44 @@ const CreateFlashcards = () => {
                     </Input>
                   </div>
                 </div>
+
+                {/* AI Model & Custom Prompt Template selectors */}
+                {userSettings && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                        AI Model Override
+                      </label>
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium"
+                      >
+                        <option value="">Default ({userSettings.preferred_model})</option>
+                        <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fast)</option>
+                        <option value="gemma-2-9b-it">Gemma 2 9B (Precise)</option>
+                        <option value="mixtral-8x7b-32768">Mixtral 8x7B (Detailed)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Instructions Preset
+                      </label>
+                      <select
+                        value={selectedPromptId}
+                        onChange={(e) => setSelectedPromptId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-medium"
+                        disabled={!userSettings.custom_prompts || userSettings.custom_prompts.length === 0}
+                      >
+                        <option value="">Standard Generation</option>
+                        {userSettings.custom_prompts && userSettings.custom_prompts.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Generate Trigger */}

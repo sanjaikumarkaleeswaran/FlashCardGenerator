@@ -1,6 +1,7 @@
 # backend/services/groq_service.py
 
 import os
+import io
 import json
 import logging
 from typing import List, Dict, Optional
@@ -12,7 +13,9 @@ logger = logging.getLogger(__name__)
 def generate_flashcards_with_groq(
     study_text: str,
     flashcard_type: str,
-    number_of_cards: int
+    number_of_cards: int,
+    model: Optional[str] = None,
+    custom_instructions: Optional[str] = None
 ) -> List[Dict]:
     """
     Generate structured flashcards using the Groq API.
@@ -22,7 +25,8 @@ def generate_flashcards_with_groq(
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is not set.")
         
-    model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+    if not model:
+        model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
     
     # Initialize client
     client = Groq(api_key=api_key)
@@ -36,6 +40,9 @@ def generate_flashcards_with_groq(
         prompt_template = QA_PROMPT
         
     prompt = prompt_template.format(text=study_text, count=number_of_cards, type=flashcard_type)
+    
+    if custom_instructions and custom_instructions.strip():
+        prompt += f"\n\nCRITICAL ADDITIONAL INSTRUCTIONS (Strictly apply these styling and focus filters):\n{custom_instructions.strip()}"
     
     logger.info(f"Calling Groq API using model: {model} for type: {flashcard_type}")
     
@@ -123,3 +130,34 @@ def generate_flashcards_with_groq(
         raise ValueError("No valid flashcards could be parsed from the Groq API response.")
         
     return validated_cards
+
+def transcribe_audio_with_groq(file_bytes: bytes, filename: str) -> str:
+    """
+    Transcribe audio bytes to text using Groq's Audio API (Whisper-large-v3).
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable is not set.")
+    
+    # Initialize client
+    client = Groq(api_key=api_key)
+    
+    # Create named in-memory file for requests/multipart compatibility
+    class NamedBytesIO(io.BytesIO):
+        def __init__(self, val, name):
+            super().__init__(val)
+            self.name = name
+
+    audio_file = NamedBytesIO(file_bytes, filename)
+    
+    try:
+        logger.info(f"Calling Groq Audio API for file: {filename}")
+        translation = client.audio.transcriptions.create(
+            file=audio_file,
+            model="whisper-large-v3",
+            response_format="text"
+        )
+        return translation
+    except Exception as e:
+        logger.error(f"Whisper transcription failed: {e}")
+        raise e

@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import CreateFlashcards from './pages/CreateFlashcards';
 import Review from './pages/Review';
 import History from './pages/History';
+import Settings from './pages/Settings';
 import { authService } from './services/api';
 
 // Route Guard component to protect private study paths
@@ -58,6 +59,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <History />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               }
             />

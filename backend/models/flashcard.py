@@ -63,6 +63,9 @@ class FlashcardGenerateRequest(BaseModel):
     folder_name: Optional[str] = None
     ignore_words: Optional[List[str]] = None  # Custom ignore words list for Cloze safety
     difficulty: Optional[str] = None
+    custom_prompt_id: Optional[str] = None
+    custom_instructions: Optional[str] = None
+    model: Optional[str] = None
 
 class ReviewUpdateRequest(BaseModel):
     cardId: str

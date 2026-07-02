@@ -24,6 +24,43 @@ api.interceptors.request.use(
   }
 );
 
+// Response interceptor to handle token expiration & rotating token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          const response = await axios.post(`${API_URL}/api/auth/refresh`, {
+            refresh_token: refreshToken,
+          });
+          if (response.data.access_token) {
+            localStorage.setItem('token', response.data.access_token);
+            localStorage.setItem('refresh_token', response.data.refresh_token);
+            originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
+            return api(originalRequest);
+          }
+        } catch (refreshError) {
+          // If refresh token validation fails, log out completely
+          localStorage.removeItem('token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
+      } else {
+        // No refresh token available, log out completely
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authService = {
   async register(email, password) {
     const response = await api.post('/api/register', { email, password });
@@ -34,6 +71,7 @@ export const authService = {
     const response = await api.post('/api/login', { email, password });
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('refresh_token', response.data.refresh_token);
     }
     return response.data;
   },
@@ -43,12 +81,49 @@ export const authService = {
     return response.data;
   },
 
-  logout() {
-    localStorage.removeItem('token');
+  async logout() {
+    const refreshToken = localStorage.getItem('refresh_token');
+    try {
+      if (refreshToken) {
+        await api.post('/api/auth/logout', { refresh_token: refreshToken });
+      }
+    } catch (e) {
+      console.error("Logout request failed:", e);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+    }
   },
 
   isAuthenticated() {
     return !!localStorage.getItem('token');
+  },
+};
+
+export const settingsService = {
+  async getSettings() {
+    const response = await api.get('/api/settings');
+    return response.data;
+  },
+
+  async updateSettings(settings) {
+    const response = await api.put('/api/settings', settings);
+    return response.data;
+  },
+
+  async listModels() {
+    const response = await api.get('/api/models');
+    return response.data;
+  },
+
+  async addCustomPrompt(name, instruction) {
+    const response = await api.post('/api/settings/prompts', { name, instruction });
+    return response.data;
+  },
+
+  async deleteCustomPrompt(promptId) {
+    const response = await api.delete(`/api/settings/prompts/${promptId}`);
+    return response.data;
   },
 };
 
@@ -122,6 +197,43 @@ export const flashcardService = {
 
   async listSubjects() {
     const response = await api.get('/api/subjects');
+    return response.data;
+  },
+
+  // SM-2 Forecast & Leech Analytics
+  async getForecast() {
+    const response = await api.get('/api/forecast');
+    return response.data;
+  },
+
+  async getLeechCards() {
+    const response = await api.get('/api/leech');
+    return response.data;
+  },
+
+  // Bulk operations
+  async importCsv(payload) {
+    const response = await api.post('/api/import', payload);
+    return response.data;
+  },
+
+  async resetDeckProgress(setId) {
+    const response = await api.post(`/api/flashcards/reset-deck/${setId}`);
+    return response.data;
+  },
+
+  async resetCardProgress(setId, cardId) {
+    const response = await api.post(`/api/flashcards/reset-card/${setId}/${cardId}`);
+    return response.data;
+  },
+
+  async resetGlobalProgress() {
+    const response = await api.post('/api/flashcards/reset-global');
+    return response.data;
+  },
+
+  async batchOperations(payload) {
+    const response = await api.post('/api/flashcards/batch', payload);
     return response.data;
   },
 };
