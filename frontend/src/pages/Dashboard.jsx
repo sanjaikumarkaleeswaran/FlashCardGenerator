@@ -379,6 +379,11 @@ const Dashboard = () => {
               Review Queue
             </Button>
           </Link>
+          <Link to="/assistant" className="flex-1 md:flex-initial">
+            <Button variant="secondary" icon={Sparkles} className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md border border-violet-500/20">
+              AI Tutor
+            </Button>
+          </Link>
         </div>
       </div>
 
