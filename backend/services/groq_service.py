@@ -131,6 +131,47 @@ def generate_flashcards_with_groq(
         
     return validated_cards
 
+
+def get_groq_response(
+    system_instruction: str,
+    user_prompt: str,
+    model: Optional[str] = None,
+    response_format: Optional[str] = None
+) -> str:
+    """
+    General-purpose Groq LLM completion helper for RAG, summaries, quizzes, and study plans.
+    Returns the raw text response from the Groq API.
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable is not set.")
+
+    if not model:
+        model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+
+    client = Groq(api_key=api_key)
+
+    kwargs = {
+        "messages": [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_prompt},
+        ],
+        "model": model,
+        "temperature": 0.4,
+    }
+
+    # Enable JSON mode only when explicitly requested
+    if response_format == "json":
+        kwargs["response_format"] = {"type": "json_object"}
+
+    try:
+        logger.info(f"[get_groq_response] Calling Groq API with model: {model}")
+        completion = client.chat.completions.create(**kwargs)
+        return completion.choices[0].message.content or ""
+    except Exception as e:
+        logger.error(f"[get_groq_response] Groq API call failed: {e}")
+        raise e
+
 def transcribe_audio_with_groq(file_bytes: bytes, filename: str) -> str:
     """
     Transcribe audio bytes to text using Groq's Audio API (Whisper-large-v3).
