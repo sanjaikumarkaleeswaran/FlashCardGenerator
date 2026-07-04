@@ -54,6 +54,9 @@ const Review = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  const currentCard = queue[currentIndex] || null;
+  const cardType = currentCard ? (currentCard.type || 'qa') : 'qa';
+
   // Reset speech when the card changes
   useEffect(() => {
     if ('speechSynthesis' in window) {
@@ -330,8 +333,6 @@ const Review = () => {
     );
   }
 
-  const currentCard = queue[currentIndex];
-  const cardType = currentCard.type || 'qa';
   const progressPercent = ((currentIndex + 1) / queue.length) * 100;
 
   return (

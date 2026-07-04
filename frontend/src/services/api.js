@@ -221,6 +221,11 @@ export const flashcardService = {
     return response.data;
   },
 
+  async getAnalytics() {
+    const response = await api.get('/api/analytics');
+    return response.data;
+  },
+
   // Bulk operations
   async importCsv(payload) {
     const response = await api.post('/api/import', payload);

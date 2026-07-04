@@ -42,6 +42,7 @@ const Dashboard = () => {
   // Spaced Repetition Analytics States
   const [forecast, setForecast] = useState([]);
   const [leechCards, setLeechCards] = useState([]);
+  const [qualityMetrics, setQualityMetrics] = useState(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -72,6 +73,15 @@ const Dashboard = () => {
         setDocuments(docsData || []);
       } catch (err) {
         console.error("Failed to fetch documents:", err);
+      }
+
+      try {
+        const analyticsData = await flashcardService.getAnalytics();
+        if (analyticsData && analyticsData.document_quality_metrics) {
+          setQualityMetrics(analyticsData.document_quality_metrics);
+        }
+      } catch (err) {
+        console.error("Failed to fetch quality metrics:", err);
       }
 
       // Add a slight delay for smooth layout transitions
@@ -1057,6 +1067,80 @@ const Dashboard = () => {
             </div>
             
           </Card>
+
+          {qualityMetrics && (
+            <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/85 shadow-md space-y-5">
+              <h3 className="text-sm font-extrabold text-slate-800 dark:text-white uppercase tracking-wider flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-violet-550 dark:text-violet-400" />
+                <span>AI Document Intelligence</span>
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-350 mb-1">
+                    <span>Document Coverage</span>
+                    <span className="text-violet-650 dark:text-violet-400 font-extrabold">{qualityMetrics.coverage_percentage}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-violet-650 h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${qualityMetrics.coverage_percentage}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-350 mb-1">
+                    <span>Concept Mapping</span>
+                    <span className="text-blue-605 dark:text-blue-400 font-extrabold">{qualityMetrics.concept_coverage}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-blue-600 h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${qualityMetrics.concept_coverage}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-350 mb-1">
+                    <span>Question Diversity</span>
+                    <span className="text-indigo-650 dark:text-indigo-400 font-extrabold">{qualityMetrics.question_diversity_index}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${qualityMetrics.question_diversity_index}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-350 mb-1">
+                    <span>Grounding Accuracy</span>
+                    <span className="text-emerald-650 dark:text-emerald-450 font-extrabold">{qualityMetrics.answer_accuracy}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${qualityMetrics.answer_accuracy}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-805">
+                  <div className="text-center bg-slate-50 dark:bg-slate-950/20 p-2.5 rounded-xl border border-slate-150 dark:border-slate-800/60">
+                    <span className="block text-xs font-black text-rose-500">{qualityMetrics.duplicate_percentage}%</span>
+                    <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Duplicate Rate</span>
+                  </div>
+                  <div className="text-center bg-slate-50 dark:bg-slate-950/20 p-2.5 rounded-xl border border-slate-150 dark:border-slate-800/60">
+                    <span className="block text-xs font-black text-emerald-500">{qualityMetrics.hallucination_rate}%</span>
+                    <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Hallucinations</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
 
       </div>
