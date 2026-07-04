@@ -40,15 +40,15 @@
 *   **JWT & Refresh Token Rotation**: Implements dual JWT setups (short-lived access tokens, long-lived rotating refresh tokens stored in MongoDB) with automatic session invalidation upon token-reuse detection.
 *   **Protected Route Architecture**: Client-side navigation guards alongside server-side FastAPI dependency verification (`Depends(get_current_user)`).
 
-### AI Document Processing
+### AI Document Processing & Ingestion
 *   **Rich Format Ingestion**: Accepts PDF, DOCX, TXT, PPTX slide decks, image uploads (OCR via cloud/local processors), and audio files (Whisper speech-to-text transcribing voice notes).
-*   **Extraction & Chunking Pipeline**: Parses document structure, splits content into semantic chunks, generates vectors for quick retrieval, and feeds clean data to the generative engines.
-*   **AES Encryption Vault**: Document text strings are fully encrypted at rest and decrypted on the fly during generation, securing proprietary learning materials.
+*   **Extraction & Ingestion Cleaning**: Prior to chunking, documents undergo header/footer extraction, duplicate paragraph filtration, OCR spelling correction, and automatic language detection to guarantee clean input text.
+*   **Semantic Chunking & AES Encryption**: Parses document structure, encrypts raw content with AES-256-GCM at rest, and splits context into semantic chunks for rapid retrieval.
 
-### AI Flashcard Generation
-*   **Multi-Format Decks**: Outputs Definitions, QA Cards, Multiple Choice options (MCQs) with shuffled distractors, and Cloze fill-ups.
-*   **Custom Prompting Templates**: Allows saving specific learning styles (e.g. *ELI5* simple explanations, *Formula Focus* for math/physics, *Interview Prep* mock questions).
-*   **Advanced Validation**: Filters generated cards to prevent duplicates, verifies schema compliance, and validates answer accuracy.
+### AI Flashcard Generation & Verification
+*   **Multi-Format Decks**: Outputs Definitions, QA Cards, Multiple Choice options (MCQs) with shuffled distractors, Cloze fill-ups, Bloom's Taxonomy-based QA, and Scenario/Assertion-Reason layouts.
+*   **7-Stage Validation Pipeline**: Fully validates generated cards by scoring concept relevance, detecting duplication, running grammatical reviews, and verifying strict grounding against the source text to prevent LLM hallucinations.
+*   **Offline spaCy Fallback**: Local NLP parse rules take over if the cloud LLM is rate-limited or offline (utilizing entity detection, copulas, and sentence dependencies).
 
 ### Smart Review Queue (SM-2)
 *   **SM-2 Spaced Repetition**: Tracks Ease Factor, interval progression, and repetition counts.
@@ -56,10 +56,10 @@
 *   **Leech Alert Detection**: Flags difficult terms with high fail/lapse ratios for custom study sessions.
 *   **Interactive Study Player**: Feature-rich study screen supporting keyboard shortcuts, card flipping, progress bars, and custom audio speech playback.
 
-### Workspace Dashboard
+### Workspace Dashboard & Quality Analytics
 *   **Mastery Heatmaps & Timelines**: High-impact SVG visualisations tracking streaks, review volume, and historical retention metrics.
+*   **AI Document Intelligence Panel**: Computes and displays Document Coverage %, Concept Mapping %, Question Diversity %, Grounding Accuracy %, Duplicate Rates, and Hallucination metrics.
 *   **Document File Center**: A complete document manager panel enabling direct file uploads, database reference deletions, and single-click generation redirection.
-*   **Learning Analytics**: Focuses on study hours, strongest/weakest topics, and completed quiz scores.
 
 ---
 
@@ -91,36 +91,43 @@ graph TD
 
 ---
 
-## AI Pipeline Workflow
+## AI Document Intelligence Pipeline
 
-SmartFlash processes study material through a six-stage data refining pipeline:
+SmartFlash processes study material through a 7-stage data refining pipeline:
 
 ```mermaid
 flowchart TD
-  Upload[User uploads Document / Voice Note / Text]
-  Extract[Extract text from format - OCR/Whisper/PPTX/PDF]
+  Upload[User uploads Document / Audio / Text]
+  Clean[OCR Spelling Correction & Ingestion Cleanup]
   Encrypt[Encrypt raw text using AES-256 key]
   Chunk[Segment text into semantic paragraphs]
   Parse[Parse using Groq LLM OR offline spaCy NLP]
-  Validate[Filter duplicates & validate JSON schema]
+  Validate[7-Stage Validation: Grounding, Quality & Diversity]
   Save[Save Flashcard Set & index next review dates]
-  Review[Generate SM-2 Review Queue]
+  RAG[Hybrid Search RAG with citation mapping]
+  Dashboard[Render Coverage & Quality Analytics]
 
-  Upload --> Extract
-  Extract --> Encrypt
+  Upload --> Clean
+  Clean --> Encrypt
   Encrypt --> Chunk
   Chunk --> Parse
   Parse --> Validate
   Validate --> Save
-  Save --> Review
+  Save --> RAG
+  Save --> Dashboard
 ```
 
 1.  **Ingestion & Parsing**: Extracted file bytes are converted to clean strings. OCR is performed on image inputs, and audio notes are transcribed using Groq Whisper.
-2.  **AES Shielding**: Raw strings are secured with AES-256 before writing to database fields.
-3.  **Semantic Chunking**: Large texts are split into contextual chunks.
-4.  **Generative Extraction**: Groq constructs cards according to difficulty constraints, model configurations, and preset prompts.
-5.  **Offline spaCy Fallback**: If Groq is rate-limited or offline, local NLP parse rules take over (detecting definitions via copula verbs, named entities for biographies, chronological indicators, and cloze deletions).
-6.  **Schema Validation**: Outputs are validated against Pydantic models before being stored in the database.
+2.  **Ingestion Cleanup**: Automatic header/footer removal, duplicate paragraph filtration, OCR correction, and language detection.
+3.  **AES Shielding**: Raw strings are secured with AES-256 before writing to database fields.
+4.  **Semantic Chunking**: Large texts are split into contextual chunks.
+5.  **Generative Extraction**: Groq constructs cards according to difficulty constraints, model configurations, and preset prompts.
+6.  **7-Stage Validation Pipeline**: Validates against duplicate generation, schema structures, grammatical rules, educational score mapping, and strict grounding verification (canceling ungrounded/hallucinated outputs).
+7.  **Hybrid RAG Retrieval**: Integrates vector similarity search + keyword matching density + boosted exact match re-ranking, exposing citations with reliability confidence scoring:
+    *   **95-100%**: Highly Reliable
+    *   **80-94%**: Reliable
+    *   **60-79%**: Moderate Confidence
+    *   **<60%**: Low / Warnings flagged
 
 ---
 
