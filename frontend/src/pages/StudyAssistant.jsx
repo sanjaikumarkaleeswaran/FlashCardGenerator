@@ -225,8 +225,14 @@ const StudyAssistant = () => {
     if (!quiz) return;
     let score = 0;
     quiz.questions.forEach((q) => {
-      const userAns = quizAnswers[q.id]?.trim().toLowerCase();
-      const correctAns = q.correct_answer?.trim().toLowerCase();
+      const rawUserAns = quizAnswers[q.id];
+      const userAns = (rawUserAns !== undefined && rawUserAns !== null)
+        ? String(rawUserAns).trim().toLowerCase()
+        : '';
+      const rawCorrectAns = q.correct_answer;
+      const correctAns = (rawCorrectAns !== undefined && rawCorrectAns !== null)
+        ? String(rawCorrectAns).trim().toLowerCase()
+        : '';
       if (userAns === correctAns) {
         score += 1;
       }
@@ -627,7 +633,7 @@ const StudyAssistant = () => {
                           {quizSubmitted && (
                             <div className="p-3 rounded-xl text-[10px] leading-relaxed border mt-2 bg-slate-50 dark:bg-slate-855 border-slate-100 dark:border-slate-800">
                               <p className="font-black">
-                                Correct Answer: <span className="text-emerald-500">{q.correct_answer}</span>
+                                Correct Answer: <span className="text-emerald-500">{String(q.correct_answer)}</span>
                               </p>
                               <p className="text-slate-400 mt-0.5">{q.explanation}</p>
                             </div>
