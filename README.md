@@ -26,8 +26,10 @@
 **SmartFlash AI** is a complete, production-grade study assistant designed to maximize student recall and deck building efficiency. By pasting study notes or uploading course materials (documents, slide decks, images, or voice notes), SmartFlash leverages advanced natural language processing (NLP) to extract concepts and synthesize high-yield review decks in real time. 
 
 ### Core Product Philosophy:
+*   **Complete AI Learning Ecosystem**: Transition from simple flashcards to a full-scale AI Tutor with Summaries, Quizzes, Mind Maps, and RAG Chat.
 *   **Structured Active Recall**: Supports multiple study card outputs including Q&A, Multiple Choice (MCQs), and Fill-in-the-Blank Cloze deletions.
 *   **Adaptive Scheduling**: Automatically customizes review queues based on individual memory retention using the SM-2 Spaced Repetition algorithm.
+*   **Premium SaaS Workspace**: A polished, fluidly resizable desktop and mobile Sidebar UI inspired by tier-1 production applications.
 *   **Hybrid AI Generation**: Harnesses high-performance **Groq API Cloud Inference** for complex reasoning and schema compliance, with an offline **spaCy rule-based NLP pipeline** fallback when internet access is unavailable.
 *   **Security & Encryption**: Documents and personal study notes are stored securely using industry-standard AES encryption keys, ensuring absolute data privacy.
 
@@ -56,7 +58,14 @@
 *   **Leech Alert Detection**: Flags difficult terms with high fail/lapse ratios for custom study sessions.
 *   **Interactive Study Player**: Feature-rich study screen supporting keyboard shortcuts, card flipping, progress bars, and custom audio speech playback.
 
+### Comprehensive AI Tools
+*   **AI Tutor (RAG Chat)**: Ask questions directly against your uploaded documents. The AI provides cited, grounded answers to prevent hallucinations.
+*   **Smart Summaries**: Automatically generate Executive Summaries, Key Concept glossaries, and FAQs from long-form notes.
+*   **AI Quizzes**: Generate and take dynamic MCQs, True/False, and Fill-in-the-blank assessments graded instantly by the LLM.
+*   **Mind Maps & Planners**: Visualize concept relationships in your material and generate personalized day-by-day study schedules.
+
 ### Workspace Dashboard & Quality Analytics
+*   **Premium SaaS UI**: Fully resizable Sidebar navigation featuring glassmorphism, responsive mobile drawers, and seamless Light/Dark mode transitions.
 *   **Mastery Heatmaps & Timelines**: High-impact SVG visualisations tracking streaks, review volume, and historical retention metrics.
 *   **AI Document Intelligence Panel**: Computes and displays Document Coverage %, Concept Mapping %, Question Diversity %, Grounding Accuracy %, Duplicate Rates, and Hallucination metrics.
 *   **Document File Center**: A complete document manager panel enabling direct file uploads, database reference deletions, and single-click generation redirection.
@@ -166,8 +175,8 @@ flashcard-generation/
 │   └── main.py             # Application startup entrypoint
 ├── frontend/
 │   ├── src/
-│   │   ├── components/     # Reusable layout cards, Navbar, loading buttons
-│   │   ├── pages/          # Pages (Dashboard, Review, CreateFlashcards, StudyAssistant, History, Settings)
+│   │   ├── components/     # Reusable layout cards, resizable SaaS Sidebar, loading buttons
+│   │   ├── pages/          # Pages (Dashboard, DocumentLibrary, StudyAssistant, Summary, Quiz, MindMap, Planner, Analytics, CreateCards, Review, History, Settings)
 │   │   ├── services/       # Axios API client routing configurations
 │   │   ├── App.jsx         # React routing configurations
 │   │   ├── index.css       # Tailwind entrypoint + core custom css variables
@@ -350,11 +359,12 @@ The review engine implements the **SuperMemo-2 (SM-2)** algorithm. When a studen
 
 ## Screenshots Placeholder
 
-*   **Landing Page**: `![Landing Page](https://via.placeholder.com/800x450.png?text=SmartFlash+Landing+Page)`
-*   **Analytics Dashboard**: `![Dashboard Page](https://via.placeholder.com/800x450.png?text=Dashboard+Analytics+Interface)`
-*   **AI Generator Interface**: `![Generator Page](https://via.placeholder.com/800x450.png?text=AI+Flashcard+Generator)`
+*   **Premium Dashboard**: `![Dashboard Page](https://via.placeholder.com/800x450.png?text=Workspace+Dashboard+Analytics)`
+*   **Document Library**: `![Library Page](https://via.placeholder.com/800x450.png?text=Document+Library+Manager)`
+*   **AI Tutor**: `![Tutor Page](https://via.placeholder.com/800x450.png?text=RAG+Chat+Study+Assistant)`
+*   **Smart Summaries**: `![Summaries Page](https://via.placeholder.com/800x450.png?text=AI+Generated+Summaries)`
+*   **AI Quizzes**: `![Quizzes Page](https://via.placeholder.com/800x450.png?text=Interactive+Assessment+Quizzes)`
 *   **Spaced Repetition Player**: `![Review Page](https://via.placeholder.com/800x450.png?text=Interactive+Spaced+Repetition+Player)`
-*   **Study History**: `![History Page](https://via.placeholder.com/800x450.png?text=Study+History+And+Decks)`
 *   **System Settings**: `![Settings Page](https://via.placeholder.com/800x450.png?text=Custom+Study+Settings)`
 
 ---
