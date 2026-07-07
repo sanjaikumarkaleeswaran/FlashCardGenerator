@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  BookOpen, LayoutDashboard, PlusCircle, Play, 
+import {
+  BookOpen, LayoutDashboard, PlusCircle, Play,
   History as HistoryIcon, LogOut, Menu, X,
   LogIn, UserPlus, Sun, Moon, Sparkles, Settings as SettingsIcon
 } from 'lucide-react';
@@ -43,27 +43,25 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   const navLinkClass = (path) =>
-    `relative flex items-center space-x-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
-      isActive(path)
-        ? 'text-white'
-        : 'text-slate-600 dark:text-slate-300 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-white/60 dark:hover:bg-slate-800/60'
+    `relative flex items-center space-x-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${isActive(path)
+      ? 'text-white'
+      : 'text-slate-600 dark:text-slate-300 hover:text-indigo-650 dark:hover:text-indigo-400 hover:bg-white/60 dark:hover:bg-slate-800/60'
     }`;
 
   const NAV_LINKS = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'from-indigo-500 to-purple-600' },
-    { to: '/assistant', label: 'AI Tutor',   icon: Sparkles,        color: 'from-blue-500 to-indigo-650'  },
-    { to: '/create',    label: 'Create',    icon: PlusCircle,       color: 'from-purple-500 to-pink-600'  },
-    { to: '/review',    label: 'Review',    icon: Play,             color: 'from-emerald-500 to-cyan-600' },
-    { to: '/history',   label: 'History',   icon: HistoryIcon,      color: 'from-amber-500 to-orange-600' },
-    { to: '/settings',  label: 'Settings',  icon: SettingsIcon,     color: 'from-slate-500 to-slate-700'  },
+    { to: '/assistant', label: 'AI Tutor', icon: Sparkles, color: 'from-blue-500 to-indigo-650' },
+    { to: '/create', label: 'Create', icon: PlusCircle, color: 'from-purple-500 to-pink-600' },
+    { to: '/review', label: 'Review', icon: Play, color: 'from-emerald-500 to-cyan-600' },
+    { to: '/history', label: 'History', icon: HistoryIcon, color: 'from-amber-500 to-orange-600' },
+    { to: '/settings', label: 'Settings', icon: SettingsIcon, color: 'from-slate-500 to-slate-700' },
   ];
 
   return (
-    <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      scrolled
+    <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled
         ? 'backdrop-blur-xl bg-white/75 dark:bg-slate-950/80 shadow-lg shadow-indigo-500/5 border-b border-white/40 dark:border-slate-800/60'
         : 'backdrop-blur-md bg-white/60 dark:bg-slate-950/60 border-b border-white/20 dark:border-slate-900/40'
-    }`}>
+      }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
 
@@ -82,18 +80,6 @@ const Navbar = () => {
 
           {/* Desktop Links */}
           <div className="hidden md:flex items-center space-x-1">
-            {isAuthenticated && NAV_LINKS.map(({ to, label, icon: Icon, color }) => (
-              <Link key={to} to={to} className={navLinkClass(to)}>
-                {isActive(to) && (
-                  <span className={`absolute inset-0 rounded-xl bg-gradient-to-r ${color} opacity-90 shadow-md`} />
-                )}
-                <Icon className="w-4 h-4 relative z-10" />
-                <span className="relative z-10">{label}</span>
-              </Link>
-            ))}
-
-            {isAuthenticated && <div className="h-5 w-px bg-gradient-to-b from-transparent via-slate-300 dark:via-slate-700 to-transparent mx-2" />}
-
             {/* Theme Toggle — animated pill */}
             <button
               onClick={toggleTheme}
@@ -105,11 +91,10 @@ const Navbar = () => {
               }}
               title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
             >
-              <span className={`absolute top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all duration-400 shadow-md ${
-                theme === 'dark'
+              <span className={`absolute top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all duration-400 shadow-md ${theme === 'dark'
                   ? 'right-0.5 bg-slate-900 text-yellow-400'
                   : 'left-0.5 bg-white text-amber-500'
-              }`}>
+                }`}>
                 {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
               </span>
             </button>
@@ -147,9 +132,8 @@ const Navbar = () => {
                   : 'linear-gradient(135deg, #fbbf24, #f97316)',
               }}
             >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-400 shadow-md ${
-                theme === 'dark' ? 'right-0.5 bg-slate-900 text-yellow-400' : 'left-0.5 bg-white text-amber-500'
-              }`}>
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-400 shadow-md ${theme === 'dark' ? 'right-0.5 bg-slate-900 text-yellow-400' : 'left-0.5 bg-white text-amber-500'
+                }`}>
                 {theme === 'dark' ? <Moon className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
               </span>
             </button>
@@ -168,22 +152,6 @@ const Navbar = () => {
         <div className="md:hidden animate-fade-in backdrop-blur-xl bg-white/90 dark:bg-slate-950/90 border-b border-slate-200/60 dark:border-slate-800 px-4 pt-2 pb-4 space-y-1 shadow-xl">
           {isAuthenticated ? (
             <>
-              {NAV_LINKS.map(({ to, label, icon: Icon, color }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-2xl text-base font-bold transition-all ${
-                    isActive(to)
-                      ? `bg-gradient-to-r ${color} text-white shadow-md`
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{label}</span>
-                </Link>
-              ))}
-              <div className="border-t border-slate-100 dark:border-slate-800 my-2" />
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center space-x-3 px-4 py-3 rounded-2xl text-base font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
