@@ -1,23 +1,31 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Request
 from datetime import datetime, timezone
 import jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from database import users_collection
 from auth import hash_password, verify_password, create_access_token, create_refresh_token, get_current_user
 from models.user import UserRegister, UserLogin, Token, UserResponse
 from services.rate_limiter import limiter
+import re
 
 router = APIRouter()
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(..., description="Refresh token string.")
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-@limiter.limit("20/minute")
+@limiter.limit("5/minute")  # Hardened rate limiting for registration
 async def register(user_data: UserRegister, request: Request):
     """Register a new student account."""
+    # Input sanitization and validation
+    email_clean = user_data.email.strip().lower()
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email_clean):
+        raise HTTPException(status_code=400, detail="Invalid email format.")
+    if len(user_data.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long.")
+
     # Check if user already exists
-    existing_user = await users_collection.find_one({"email": user_data.email})
+    existing_user = await users_collection.find_one({"email": email_clean})
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -27,7 +35,7 @@ async def register(user_data: UserRegister, request: Request):
     # Hash password and prepare user document
     hashed_pw = hash_password(user_data.password)
     user_doc = {
-        "email": user_data.email,
+        "email": email_clean,
         "password_hash": hashed_pw,
         "created_at": datetime.now(timezone.utc),
         "refresh_tokens": [],
@@ -41,10 +49,11 @@ async def register(user_data: UserRegister, request: Request):
     }
 
 @router.post("/login", response_model=Token)
-@limiter.limit("20/minute")
+@limiter.limit("10/minute")  # Hardened login rate limits
 async def login(credentials: UserLogin, request: Request):
     """Authenticate student and return access token + refresh token."""
-    user = await users_collection.find_one({"email": credentials.email})
+    email_clean = credentials.email.strip().lower()
+    user = await users_collection.find_one({"email": email_clean})
     if not user or not verify_password(credentials.password, user["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

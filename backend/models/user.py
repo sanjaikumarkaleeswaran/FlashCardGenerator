@@ -3,11 +3,17 @@ from datetime import datetime
 
 class UserRegister(BaseModel):
     email: EmailStr
-    password: str = Field(..., min_length=6, description="Password must be at least 6 characters")
+    password: str = Field(..., min_length=8, max_length=128, description="Password must be between 8 and 128 characters.")
+
+    class Config:
+        extra = "forbid"  # Reject unexpected fields
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=128)
+
+    class Config:
+        extra = "forbid"  # Reject unexpected fields
 
 class Token(BaseModel):
     access_token: str
