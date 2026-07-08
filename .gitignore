@@ -32,3 +32,8 @@ dist-ssr/
 # OS junk files
 Thumbs.db
 desktop.ini
+
+# AI Instruction / Workflow Files
+userinstruction.md
+user_workflow.md
+study_examples.md
