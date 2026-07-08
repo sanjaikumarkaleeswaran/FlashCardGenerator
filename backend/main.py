@@ -56,12 +56,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from routes.offline import router as offline_router
+from routes.collaboration import router as collaboration_router
+from routes.voice import router as voice_router
+from routes.anki import router as anki_router
+
 # Mount API Routers
 app.include_router(auth_router, prefix="/api")
 app.include_router(flashcards_router, prefix="/api")
 app.include_router(settings_router)
 app.include_router(documents_router)
 app.include_router(study_assistant_router)
+app.include_router(offline_router, prefix="/api/offline", tags=["offline"])
+app.include_router(collaboration_router, prefix="/api")
+app.include_router(voice_router, prefix="/api")
+app.include_router(anki_router, prefix="/api")
 
 @app.get("/")
 async def root():

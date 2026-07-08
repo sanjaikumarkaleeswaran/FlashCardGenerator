@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { WifiOff } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -28,10 +29,30 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   const isAuth = authService.isAuthenticated();
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   return (
     <Router>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans antialiased text-slate-800 dark:text-slate-200">
+        {isOffline && (
+          <div className="bg-amber-500 text-white text-sm font-medium py-1 px-4 flex items-center justify-center space-x-2 z-50">
+            <WifiOff className="w-4 h-4" />
+            <span>You are currently offline. Working in offline mode. Sync will happen when reconnected.</span>
+          </div>
+        )}
         {!isAuth && <Navbar />}
         <div className="flex flex-1 overflow-hidden">
           {isAuth && <Sidebar />}

@@ -253,4 +253,66 @@ export const flashcardService = {
   },
 };
 
+export const offlineService = {
+  async sync(payload) {
+    const response = await api.post('/api/offline/sync', payload);
+    return response.data;
+  },
+  async getStatus() {
+    const response = await api.get('/api/offline/status');
+    return response.data;
+  }
+};
+
+export const collaborationService = {
+  async shareDeck(payload) {
+    const response = await api.post('/api/decks/share', payload);
+    return response.data;
+  },
+  async inviteMember(payload) {
+    const response = await api.post('/api/decks/invite', payload);
+    return response.data;
+  },
+  async getMembers(deckId) {
+    const response = await api.get(`/api/decks/members?deck_id=${deckId}`);
+    return response.data;
+  },
+  async getActivity(deckId) {
+    const response = await api.get(`/api/decks/activity?deck_id=${deckId}`);
+    return response.data;
+  }
+};
+
+export const voiceService = {
+  async transcribe(formData) {
+    const response = await api.post('/api/voice/transcribe', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+  async grade(payload) {
+    const response = await api.post('/api/voice/grade', payload);
+    return response.data;
+  }
+};
+
+export const ankiService = {
+  async exportDeck(setId, format = 'csv') {
+    const response = await api.get(`/api/anki/export?set_id=${setId}&format=${format}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+  async importDeck(deckName, formData) {
+    const response = await api.post(`/api/anki/import?deck_name=${deckName}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+  async sync(payload) {
+    const response = await api.post('/api/anki/sync', payload);
+    return response.data;
+  }
+};
+
 export default api;

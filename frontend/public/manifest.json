@@ -1,0 +1,15 @@
+{
+  "short_name": "SmartFlash",
+  "name": "SmartFlash AI v4.0",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

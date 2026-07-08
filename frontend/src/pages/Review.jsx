@@ -11,9 +11,11 @@ import {
   Sliders,
   Sparkles,
   ArrowRight,
-  BookOpen
+  BookOpen,
+  Mic,
+  MicOff
 } from 'lucide-react';
-import { flashcardService } from '../services/api';
+import { flashcardService, voiceService } from '../services/api';
 import Flashcard from '../components/Flashcard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/ui/Button';
@@ -56,6 +58,73 @@ const Review = () => {
 
   const currentCard = queue[currentIndex] || null;
   const cardType = currentCard ? (currentCard.type || 'qa') : 'qa';
+
+  // Voice Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [isVoiceGrading, setIsVoiceGrading] = useState(false);
+  const [voiceResult, setVoiceResult] = useState(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      const chunks = [];
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        await handleVoiceSubmit(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+      recorder.start();
+      setIsRecording(true);
+      setVoiceResult(null);
+    } catch (err) {
+      console.error("Microphone error:", err);
+      alert("Microphone access denied or unavailable.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleVoiceSubmit = async (audioBlob) => {
+    setIsVoiceGrading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'voice.webm');
+      const { transcript } = await voiceService.transcribe(formData);
+      
+      const gradeResult = await voiceService.grade({
+        card_id: currentCard.id,
+        set_id: currentCard.setId || setId || 'shared',
+        transcript: transcript,
+        correct_answer: currentCard.answer
+      });
+      
+      setVoiceResult(gradeResult);
+      setUserAnswer(transcript);
+      setHasChecked(true);
+      setIsCorrect(gradeResult.suggested_rating >= 3);
+      
+      // Auto-update SM-2 rating after 3 seconds
+      setTimeout(() => {
+        handleReviewSM2(gradeResult.suggested_rating);
+        setVoiceResult(null);
+      }, 3000);
+      
+    } catch (err) {
+      console.error(err);
+      alert('Voice grading failed.');
+    } finally {
+      setIsVoiceGrading(false);
+    }
+  };
 
   // Reset speech when the card changes
   useEffect(() => {
@@ -572,9 +641,36 @@ const Review = () => {
 
             {/* Standard Review Controls (Known / Practice) */}
             {!showAdvancedGrading ? (
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => handleReviewAction('not_known')}
+              <div className="flex flex-col gap-4">
+                {cardType === 'qa' && !hasChecked && (
+                  <button
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onMouseLeave={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
+                    disabled={isVoiceGrading}
+                    className={`w-full h-14 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer ${
+                      isRecording ? 'bg-rose-500 text-white animate-pulse' : 
+                      isVoiceGrading ? 'bg-indigo-300 text-white' : 
+                      'bg-indigo-50 border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                    }`}
+                  >
+                    {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                    <span>{isVoiceGrading ? 'Grading...' : isRecording ? 'Recording...' : 'Hold to Speak Answer'}</span>
+                  </button>
+                )}
+                {voiceResult && (
+                  <div className="text-center p-3 rounded-xl bg-slate-100 border border-slate-200 text-sm font-bold">
+                    <div className="text-indigo-600">"{voiceResult.transcript}"</div>
+                    <div className={voiceResult.suggested_rating >= 3 ? "text-emerald-600" : "text-rose-600"}>
+                      Score: {voiceResult.similarity_percentage}% - {voiceResult.feedback}
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={() => handleReviewAction('not_known')}
                   className={`w-full sm:flex-1 h-14 px-4 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer ${
                     (cardType !== 'qa' && !isCorrect)
                       ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-rose-500/20 border-none'
@@ -596,7 +692,8 @@ const Review = () => {
                   <span>Known ✓</span>
                 </button>
               </div>
-            ) : (
+            </div>
+          ) : (
               /* Anki 0-5 Quality Buttons Grid */
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/20">
                 {[

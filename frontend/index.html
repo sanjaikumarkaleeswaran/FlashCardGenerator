@@ -4,11 +4,23 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmartFlash - AI Smart Flashcard Generator & Spaced Repetition Study Engine</title>
+    <link rel="manifest" href="/manifest.json" />
+    <title>SmartFlash AI | Spaced Repetition Study Engine</title>
     <meta name="description" content="Generate high-yield question-answer flashcards from your study notes automatically using local NLP processing and study with spaced repetition scheduling." />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

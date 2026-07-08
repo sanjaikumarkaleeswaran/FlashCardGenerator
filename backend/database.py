@@ -29,6 +29,15 @@ assistant_history_collection = db["assistant_history"]
 analytics_collection = db["analytics"]
 review_history_collection = db["review_history"]
 
+# Phase 4 Collections
+offline_queue_collection = db["offline_queue"]
+shared_decks_collection = db["shared_decks"]
+deck_permissions_collection = db["deck_permissions"]
+activity_logs_collection = db["activity_logs"]
+voice_reviews_collection = db["voice_reviews"]
+anki_sync_collection = db["anki_sync"]
+sync_history_collection = db["sync_history"]
+
 async def ping_database():
     """Verify that MongoDB connection works."""
     try:
