@@ -311,7 +311,11 @@ The backend application requires a `.env` file in the `backend/` directory with 
 | `GET` | `/api/summary` | Fetch document summary content | Yes |
 | `POST` | `/api/quiz` | Generate customized interactive quizzes | Yes |
 | `POST` | `/api/quiz/submit` | Evaluate quiz answers and return score card | Yes |
+| `POST` | `/api/mock-test` | Generate structured mock exams for adaptive study evaluation | Yes |
+| `POST` | `/api/study-plan` | Generate a dynamic calendar schedule and learning paths | Yes |
+| `GET` | `/api/analytics` | Fetch document intelligence quality metrics | Yes |
 | `POST` | `/api/ai-tutor` | AI Tutor explanations with analogies & tricks | Yes |
+| `POST` | `/api/revision-sheet` | Generate printable revision sheet with cheat sheets and formulas | Yes |
 | `POST` | `/api/knowledge-graph` | Generate interactive concept relationship graphs | Yes |
 
 ---
@@ -357,7 +361,7 @@ The review engine implements the **SuperMemo-2 (SM-2)** algorithm. When a studen
 
 ---
 
-## Screenshots Placeholder
+## Application Previews
 
 *   **Premium Dashboard**: `![Dashboard Page](https://via.placeholder.com/800x450.png?text=Workspace+Dashboard+Analytics)`
 *   **Document Library**: `![Library Page](https://via.placeholder.com/800x450.png?text=Document+Library+Manager)`
@@ -379,6 +383,7 @@ The review engine implements the **SuperMemo-2 (SM-2)** algorithm. When a studen
 ### Security Implementation
 *   **AES Encryption Vault**: Document text strings are encrypted using AES-256-GCM.
 *   **Secure Password Storage**: Passwords are hashed using `bcrypt` before database storage.
+*   **OWASP Strict Input Validation**: Hardened registration and authentication endpoints with robust regex format checks to prevent injection attacks.
 *   **Limiter Shielding**: Endpoints are protected against DDoS and brute force attacks using `SlowAPI` rate-limiting policies.
 
 ---
