@@ -93,15 +93,52 @@ const StudyAssistant = () => {
     loadKBs();
   }, []);
 
+  // Timeline State
+  const [timelineStages, setTimelineStages] = useState([
+    { id: 'upload', label: 'Uploading', status: 'pending' },
+    { id: 'extract', label: 'Extracting Text', status: 'pending' },
+    { id: 'split', label: 'Splitting Document', status: 'pending' },
+    { id: 'parent', label: 'Building Parent Chunks', status: 'pending' },
+    { id: 'child', label: 'Building Child Chunks', status: 'pending' },
+    { id: 'embed', label: 'Creating Embeddings', status: 'pending' },
+    { id: 'kb', label: 'Building Knowledge Base', status: 'pending' },
+    { id: 'ai', label: 'Generating AI Output', status: 'pending' }
+  ]);
+  const [timelineProgress, setTimelineProgress] = useState(0);
+
   // Handle File Upload
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setIsUploading(true);
     setUploadError('');
+    setTimelineProgress(0);
+    setTimelineStages(prev => prev.map(s => ({ ...s, status: 'pending' })));
 
     const formData = new FormData();
     formData.append('file', file);
+
+    // Simulate progress while uploading
+    let currentStageIdx = 0;
+    const progressInterval = setInterval(() => {
+      setTimelineProgress(p => {
+        if (p >= 95) return 95;
+        const newP = p + (95 / 30); // Reach 95% over ~15 seconds (500ms intervals)
+        
+        // Update stages based on progress
+        const expectedStage = Math.floor((newP / 100) * 8);
+        if (expectedStage > currentStageIdx && expectedStage < 8) {
+          setTimelineStages(stages => stages.map((s, idx) => {
+            if (idx < expectedStage) return { ...s, status: 'complete' };
+            if (idx === expectedStage) return { ...s, status: 'active' };
+            return s;
+          }));
+          currentStageIdx = expectedStage;
+        }
+        
+        return newP;
+      });
+    }, 500);
 
     try {
       const token = localStorage.getItem('token');
@@ -111,12 +148,22 @@ const StudyAssistant = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      await loadKBs();
-      setActiveTab('library');
+      
+      clearInterval(progressInterval);
+      setTimelineProgress(100);
+      setTimelineStages(prev => prev.map(s => ({ ...s, status: 'complete' })));
+      
+      setTimeout(async () => {
+        await loadKBs();
+        setActiveTab('library');
+        setIsUploading(false);
+      }, 1000);
+      
     } catch (err) {
+      clearInterval(progressInterval);
+      setTimelineStages(prev => prev.map((s, idx) => idx === currentStageIdx ? { ...s, status: 'error' } : s));
       setUploadError(err.response?.data?.detail || 'Failed to upload document.');
-    } finally {
-      setIsUploading(false);
+      setTimeout(() => setIsUploading(false), 3000);
     }
   };
 
@@ -288,6 +335,50 @@ const StudyAssistant = () => {
         <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 text-rose-700 dark:text-rose-400 p-4 rounded-2xl text-sm font-semibold">
           {uploadError}
         </div>
+      )}
+
+      {/* Chunk Processing Timeline */}
+      {isUploading && (
+        <Card className="p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-black text-indigo-500 uppercase tracking-wider flex items-center gap-2">
+              <Activity className="w-4 h-4 animate-pulse" />
+              Enterprise Document Chunking Pipeline
+            </h3>
+            <span className="text-xs font-bold text-slate-500">{Math.floor(timelineProgress)}% Complete</span>
+          </div>
+          
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mb-6 overflow-hidden">
+            <div 
+              className="bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${timelineProgress}%` }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {timelineStages.map((stage, idx) => (
+              <div key={stage.id} className="flex flex-col gap-1.5">
+                <div className={`flex items-center gap-2 text-xs font-extrabold ${
+                  stage.status === 'complete' ? 'text-emerald-500' :
+                  stage.status === 'active' ? 'text-indigo-500 animate-pulse' :
+                  stage.status === 'error' ? 'text-rose-500' :
+                  'text-slate-400 dark:text-slate-600'
+                }`}>
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center border-2 ${
+                    stage.status === 'complete' ? 'bg-emerald-500 border-emerald-500' :
+                    stage.status === 'active' ? 'border-indigo-500 bg-transparent' :
+                    stage.status === 'error' ? 'bg-rose-500 border-rose-500' :
+                    'border-slate-300 dark:border-slate-700 bg-transparent'
+                  }`}>
+                    {stage.status === 'complete' && <CheckCircle className="w-2.5 h-2.5 text-white" />}
+                    {stage.status === 'active' && <Loader className="w-2.5 h-2.5 animate-spin" />}
+                  </div>
+                  {stage.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Main Tabbed Grid */}

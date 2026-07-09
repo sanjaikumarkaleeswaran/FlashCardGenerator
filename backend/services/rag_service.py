@@ -39,8 +39,8 @@ async def ingest_document_to_kb(user_id: ObjectId, filename: str, file_bytes: by
     if len(raw_text) < 30:
         raise ValueError("Document contains insufficient text for indexing (minimum 30 characters).")
 
-    # 2. Run text-cleansing pipeline
-    cleaned_text, chunks, lang = run_document_understanding_pipeline(raw_text)
+    # 2. Run basic text cleansing for summary metadata
+    cleaned_text, _, lang = run_document_understanding_pipeline(raw_text)
 
     # 3. Encrypt and save raw document
     encrypted_text = encrypt_text(cleaned_text)
@@ -72,25 +72,45 @@ async def ingest_document_to_kb(user_id: ObjectId, filename: str, file_bytes: by
     }
     await db["knowledge_bases"].insert_one(kb_record)
 
-    # 6. Embed chunks and save to Vector DB (embeddings collection)
+    # 6. ENTERPRISE CHUNKING PIPELINE: Process, Validate, Embed
+    from services.chunking.chunk_manager import ChunkManager
+    chunk_manager = ChunkManager()
+    
+    # We pass the raw_text to the splitter for natural boundaries
+    valid_chunks = chunk_manager.process_document(
+        document_id=str(doc_id),
+        document_name=filename,
+        raw_text=raw_text
+    )
+    
     embeddings_to_insert = []
-    for idx, chunk in enumerate(chunks):
-        vector = get_embedding(chunk)
-        page_num = (idx * 600) // 2000 + 1
+    # Lazy/batch embedding could be implemented here; processing sequentially for now
+    for chunk_data in valid_chunks:
+        vector = get_embedding(chunk_data["child_text"])
         
-        embeddings_to_insert.append({
+        # Build the document_chunk record
+        doc_chunk_record = {
             "_id": ObjectId(),
-            "document_id": doc_id,
-            "user_id": user_id,
-            "chunk_id": f"chunk_{idx}",
-            "text": chunk,
+            "document_id": str(doc_id),
+            "user_id": str(user_id),
+            "parent_chunk_id": chunk_data["parent_id"],
+            "child_chunk_id": chunk_data["child_id"],
+            "page_number": chunk_data["metadata"].get("page_number", 1),
+            "heading": "", # Extended metadata could populate this
+            "section": "",
+            "text": chunk_data["child_text"],
+            "parent_text": chunk_data["parent_text"],
             "embedding": vector,
-            "page_number": page_num,
+            "metadata": chunk_data["metadata"],
             "created_at": datetime.utcnow()
-        })
-        
+        }
+        embeddings_to_insert.append(doc_chunk_record)
+
     if embeddings_to_insert:
-        await db["embeddings"].insert_many(embeddings_to_insert)
+        # Save to the new enterprise collection
+        from database import document_chunks_collection
+        await document_chunks_collection.insert_many(embeddings_to_insert)
+        
         await db["knowledge_bases"].update_one(
             {"_id": doc_id},
             {"$set": {"chunk_count": len(embeddings_to_insert)}}
@@ -150,9 +170,26 @@ async def answer_query_with_rag(user_id: ObjectId, document_id: ObjectId, questi
     Upgraded Grounded RAG Pipeline:
     Hybrid Retrieval -> Context Compression -> Grounded Generation -> Self-Verification -> Citation mapping
     """
-    # 1. Retrieve hybrid context
-    context_chunks = await retrieve_hybrid_context(user_id, document_id, question, top_k=5, similarity_threshold=0.30)
+    # 1. Retrieve hybrid context (Enterprise Pipeline)
+    from services.chunking.retriever import EnterpriseRetriever
+    retriever = EnterpriseRetriever()
     
+    # Check if this document has enterprise chunks
+    from database import document_chunks_collection
+    has_enterprise_chunks = await document_chunks_collection.find_one({"document_id": str(document_id)})
+    
+    if has_enterprise_chunks:
+        enterprise_chunks = await retriever.retrieve(question, str(user_id), [str(document_id)], top_k=5)
+        if not enterprise_chunks:
+            context_chunks = []
+        else:
+            context_text = "\n\n".join([f"[Source Page {c['page_number']}]: {c['context']}" for c in enterprise_chunks])
+            context_chunks = [{"chunk_id": "ent", "text": c["context"], "page_number": c["page_number"], "hybrid_score": c["score"]} for c in enterprise_chunks]
+    else:
+        # Legacy fallback
+        context_chunks = await retrieve_hybrid_context(user_id, document_id, question, top_k=5, similarity_threshold=0.30)
+        context_text = "\n\n".join([f"[Source Page {c['page_number']}]: {c['text']}" for c in context_chunks])
+
     if not context_chunks:
         return {
             "session_id": session_id or str(ObjectId()),
@@ -165,8 +202,6 @@ async def answer_query_with_rag(user_id: ObjectId, document_id: ObjectId, questi
             "difficulty_level": "unknown",
             "follow_up_questions": []
         }
-        
-    context_text = "\n\n".join([f"[Source Page {c['page_number']}]: {c['text']}" for c in context_chunks])
     
     # 2. Get document filename
     doc = await db["knowledge_bases"].find_one({"_id": document_id})

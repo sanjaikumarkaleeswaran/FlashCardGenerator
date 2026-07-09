@@ -38,6 +38,9 @@ voice_reviews_collection = db["voice_reviews"]
 anki_sync_collection = db["anki_sync"]
 sync_history_collection = db["sync_history"]
 
+# Enterprise RAG Collections
+document_chunks_collection = db["document_chunks"]
+
 async def ping_database():
     """Verify that MongoDB connection works."""
     try:
